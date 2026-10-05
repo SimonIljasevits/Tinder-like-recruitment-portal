@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="et">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sobib — AI Töökuulutuste Importija (CVKeskus & Gemini)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #0C1014;
+    --surface: #141A21;
+    --surface-hover: #1B232D;
+    --border: #242E3B;
+    --text: #F0F4F8;
+    --text-muted: #8E9BAE;
+    --accent: #22C55E;
+    --accent-glow: rgba(34, 197, 94, 0.25);
+    --primary: #3B82F6;
+    --warning: #F59E0B;
+    --danger: #EF4444;
+    --font-sans: "IBM Plex Sans", -apple-system, sans-serif;
+    --font-mono: "IBM Plex Mono", monospace;
+    --font-display: "Archivo", sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+    padding: 24px 16px 60px;
+    min-height: 100vh;
+  }
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .brand-logo {
+    width: 38px;
+    height: 38px;
+    background: linear-gradient(135deg, #10B981, #059669);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-family: var(--font-display);
+    color: #fff;
+    font-size: 20px;
+  }
+  .brand-text h1 {
+    font-size: 19px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .brand-text p {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .app-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 16px;
+    border-radius: 999px;
+    text-decoration: none;
+    font-size: 13.5px;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+  .app-link:hover {
+    background: var(--surface-hover);
+    border-color: var(--text-muted);
+  }
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(34, 197, 94, 0.12);
+    color: var(--accent);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+  }
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  /* Card and Tabs */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 28px;
+  }
+  .tabs {
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 14px;
+    margin-bottom: 20px;
+  }
+  .tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tab-btn:hover {
+    color: var(--text);
+    background: var(--surface-hover);
+  }
+  .tab-btn.active {
+    color: #fff;
+    background: var(--border);
+  }
+
+  .form-group {
+    margin-bottom: 18px;
+  }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .input-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  input[type="text"], select, textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input[type="text"]:focus, select:focus, textarea:focus {
+    border-color: var(--primary);
+  }
+  .input-search {
+    flex: 1;
+    min-width: 240px;
+  }
+  .select-limit {
+    width: 130px;
+  }
+
+  .quick-pills {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+  .pill-btn {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .pill-btn:hover {
+    border-color: var(--text-muted);
+    color: var(--text);
+  }
+
+  .btn-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: var(--accent);
+    color: #062312;
+    border: none;
+    font-weight: 700;
+    font-size: 15px;
+    padding: 14px 28px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    margin-top: 8px;
+  }
+  .btn-submit:hover:not(:disabled) {
+    background: #1eb054;
+    box-shadow: 0 4px 18px var(--accent-glow);
+  }
+  .btn-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  /* Console / Activity Log */
+  .console {
+    background: #080B0E;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: #94A3B8;
+    height: 160px;
+    overflow-y: auto;
+    margin-top: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .console .line {
+    display: flex;
+    gap: 8px;
+  }
+  .console .time {
+    color: #475569;
+  }
+  .console .success { color: var(--accent); font-weight: 600; }
+  .console .info { color: var(--primary); }
+  .console .warn { color: var(--warning); }
+  .console .error { color: var(--danger); font-weight: 600; }
+
+  /* Results grid */
+  .results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 16px;
+  }
+  .job-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .job-card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--primary));
+  }
+  .job-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .job-co {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .job-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #fff;
+    margin-top: 2px;
+    line-height: 1.3;
+  }
+  .job-pay {
+    font-family: var(--font-mono);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+    background: rgba(34, 197, 94, 0.1);
+    padding: 4px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  .job-desc {
+    font-size: 13.5px;
+    color: #CBD5E1;
+    line-height: 1.45;
+  }
+  .job-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .tag {
+    font-size: 11.5px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+  .tag.shift { border-color: rgba(59, 130, 246, 0.4); color: #93C5FD; }
+  .tag.accom { border-color: rgba(34, 197, 94, 0.4); color: #86EFAC; }
+
+  .job-firstmsg {
+    font-size: 12px;
+    font-style: italic;
+    color: #94A3B8;
+    background: var(--bg);
+    padding: 8px 10px;
+    border-radius: 8px;
+    border-left: 2px solid var(--primary);
+  }
+  .spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #062312;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="brand">
+      <div class="brand-logo">S</div>
+      <div class="brand-text">
+        <h1>Sobib AI Kuulutuste Importija</h1>
+        <p>Automaatne CVKeskus otsing + Google Gemini 2.5 Flash struktureerija</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <span class="status-badge" id="apiStatus">
+        <span class="status-dot"></span>
+        <span>API Valmis (Port 5000)</span>
+      </span>
+      <a href="index.html" class="app-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+        Ava Sobib Äpp
+      </a>
+    </div>
+  </header>
+
+  <div class="panel">
+    <div class="tabs">
+      <button type="button" class="tab-btn active" onclick="setTab('search')">1. Automaatne CVKeskus Otsing</button>
+      <button type="button" class="tab-btn" onclick="setTab('url')">2. Konkreetne Kuulutuse URL</button>
+      <button type="button" class="tab-btn" onclick="setTab('text')">3. Kleebi Kuulutuse Tekst</button>
+    </div>
+
+    <!-- TAB 1: SEARCH CVKESKUS -->
+    <div id="tabSearch">
+      <div class="form-group">
+        <label>Otsingusõna CVKeskusest</label>
+        <div class="input-row">
+          <input type="text" id="searchKeyword" class="input-search" placeholder="Nt koristaja, puhastus, laotöötaja..." value="koristaja">
+          <select id="searchLimit" class="select-limit">
+            <option value="1">1 kuulutus</option>
+            <option value="3" selected>3 kuulutust</option>
+            <option value="5">5 kuulutust</option>
+            <option value="10">10 kuulutust</option>
+          </select>
+        </div>
+        <div class="quick-pills">
+          <span style="font-size:12px;color:var(--text-muted);align-self:center;">Kiirvalikud:</span>
+          <button type="button" class="pill-btn" onclick="setKeyword('koristaja')">koristaja</button>
+          <button type="button" class="pill-btn" onclick="setKeyword('puhastusteenindaja')">puhastusteenindaja</button>
+          <button type="button" class="pill-btn" onclick="setKeyword('nõudepesija')">nõudepesija</button>
+          <button type="button" class="pill-btn" onclick="setKeyword('laotöötaja')">laotöötaja</button>
+          <button type="button" class="pill-btn" onclick="setKeyword('klienditeenindaja')">klienditeenindaja</button>
+        </div>
+      </div>
+      <button type="button" class="btn-submit" id="btnCrawl" onclick="runCrawlSearch()">
+        <span id="btnCrawlText">Otsi CVKeskusest ja Struktureeri AI-ga</span>
+      </button>
+    </div>
+
+    <!-- TAB 2: SINGLE URL -->
+    <div id="tabUrl" style="display:none;">
+      <div class="form-group">
+        <label>Kuulutuse Veebiaadress (CVKeskus, CV.ee jms)</label>
+        <input type="text" id="targetUrl" placeholder="https://www.cvkeskus.ee/klienditeenindaja-tallinnas-...">
+      </div>
+      <button type="button" class="btn-submit" id="btnUrl" onclick="runCrawlUrl()">
+        <span>Laadi Leht ja Struktureeri AI-ga</span>
+      </button>
+    </div>
+
+    <!-- TAB 3: PASTE TEXT -->
+    <div id="tabText" style="display:none;">
+      <div class="form-group">
+        <label>Kleebi Kuulutuse Vabatekst</label>
+        <textarea id="rawText" rows="6" placeholder="Kopeeri kuulutuse tekst siia (töö kirjeldus, nõuded, pakutav palk)..."></textarea>
+      </div>
+      <button type="button" class="btn-submit" id="btnText" onclick="runParseText()">
+        <span>Analüüsi Teksti Gemini AI-ga</span>
+      </button>
+    </div>
+
+    <!-- Live Console Output -->
+    <div class="console" id="console">
+      <div class="line"><span class="time">[00:00]</span> <span>Valmis töökuulutuste automaatseks importimiseks.</span></div>
+    </div>
+  </div>
+
+  <!-- Results Section -->
+  <div class="results-header">
+    <h2 style="font-size:18px;font-weight:700;">Viimati Imporditud Tööd Andmebaasis</h2>
+    <button type="button" class="pill-btn" onclick="loadRecentJobs()">Värskenda nimekirja</button>
+  </div>
+  <div class="results-grid" id="resultsGrid">
+    <!-- Populated by JS -->
+  </div>
+</div>
+
+<script>
+var API_URL = "http://localhost:5000/api";
+
+async function safeReadResponse(res) {
+  var contentType = res.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    try {
+      return await res.json();
+    } catch(err) {
+      return { success: false, message: "Serveri vastuse parsimine ebaõnnestus." };
+    }
+  }
+  var txt = await res.text();
+  return { success: res.ok, message: txt || ("HTTP " + res.status) };
+}
+
+function setTab(name) {
+  document.querySelectorAll(".tab-btn").forEach(function(b){ b.classList.remove("active"); });
+  document.getElementById("tabSearch").style.display = name === "search" ? "block" : "none";
+  document.getElementById("tabUrl").style.display = name === "url" ? "block" : "none";
+  document.getElementById("tabText").style.display = name === "text" ? "block" : "none";
+  event.target.classList.add("active");
+}
+
+function setKeyword(w) {
+  document.getElementById("searchKeyword").value = w;
+}
+
+function log(type, msg) {
+  var c = document.getElementById("console");
+  var now = new Date().toLocaleTimeString();
+  var line = document.createElement("div");
+  line.className = "line";
+  line.innerHTML = '<span class="time">[' + now + ']</span> <span class="' + type + '">' + msg + '</span>';
+  c.appendChild(line);
+  c.scrollTop = c.scrollHeight;
+}
+
+async function runCrawlSearch() {
+  var kw = document.getElementById("searchKeyword").value.trim();
+  var limit = parseInt(document.getElementById("searchLimit").value, 10) || 3;
+  var btn = document.getElementById("btnCrawl");
+  var btnText = document.getElementById("btnCrawlText");
+
+  btn.disabled = true;
+  btnText.innerHTML = '<div class="spinner"></div> Otsin CVKeskusest ja küsin Gemini AI-lt...';
+
+  log("info", "Alustan CVKeskuse otsingut märksõnaga '" + kw + "' (limiit " + limit + ")...");
+
+  try {
+    var res = await fetch(API_URL + "/crawler/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ keyword: kw, limit: limit })
+    });
+    var data = await safeReadResponse(res);
+    if (res.ok && data.success) {
+      log("success", "Õnnestus! Imporditi " + data.count + " uut tööd otse PostgreSQL andmebaasi.");
+      if (Array.isArray(data.jobs)) {
+        data.jobs.forEach(function(j) {
+          log("info", "→ " + j.title + " (" + j.companyName + ") | " + j.hourlyPay.toFixed(2) + " €/h");
+        });
+      }
+      loadRecentJobs();
+    } else {
+      log("error", "Viga: " + (data.message || "Tundmatu viga"));
+    }
+  } catch(e) {
+    log("error", "Ühenduse viga backendiga: " + e.message);
+  } finally {
+    btn.disabled = false;
+    btnText.textContent = "Otsi CVKeskusest ja Struktureeri AI-ga";
+  }
+}
+
+async function runCrawlUrl() {
+  var url = document.getElementById("targetUrl").value.trim();
+  if(!url){ alert("Palun sisesta kuulutuse URL!"); return; }
+  var btn = document.getElementById("btnUrl");
+  btn.disabled = true;
+
+  log("info", "Laadin kuulutust: " + url + "...");
+
+  try {
+    var res = await fetch(API_URL + "/crawler/parse-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: url })
+    });
+    var data = await safeReadResponse(res);
+    if(res.ok && data.success) {
+      log("success", "Õnnestus! Kuulutus '" + (data.job ? data.job.title : "Töökuulutus") + "' salvestatud andmebaasi.");
+      loadRecentJobs();
+    } else {
+      log("error", "Viga: " + (data.message || "Tundmatu viga"));
+    }
+  } catch(e) {
+    log("error", "Viga: " + e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function runParseText() {
+  var text = document.getElementById("rawText").value.trim();
+  if(!text){ alert("Palun kleebi kuulutuse tekst!"); return; }
+  var btn = document.getElementById("btnText");
+  btn.disabled = true;
+
+  log("info", "Saadan teksti Gemini Flash mudelile struktureerimiseks...");
+
+  try {
+    var res = await fetch(API_URL + "/crawler/parse-text", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rawText: text })
+    });
+    var data = await safeReadResponse(res);
+    if(res.ok && data.success) {
+      log("success", "Õnnestus! '" + (data.job ? data.job.title : "Kuulutus") + "' (" + (data.job ? data.job.companyName : "") + ") struktureeritud.");
+      loadRecentJobs();
+    } else {
+      log("error", "Viga: " + (data.message || "Tundmatu viga"));
+    }
+  } catch(e) {
+    log("error", "Viga: " + e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function loadRecentJobs() {
+  try {
+    var res = await fetch(API_URL + "/jobs");
+    if(!res.ok) return;
+    var jobs = await res.json();
+    var grid = document.getElementById("resultsGrid");
+    grid.innerHTML = "";
+
+    // Show last 6 jobs (reversed)
+    jobs.slice().reverse().slice(0, 9).forEach(function(j) {
+      var card = document.createElement("div");
+      card.className = "job-card";
+      card.innerHTML =
+        '<div class="job-top">' +
+          '<div>' +
+            '<span class="job-co">' + escapeHTML(j.companyName) + ' · ' + escapeHTML(j.location || "Tallinn") + '</span>' +
+            '<h3 class="job-title">' + escapeHTML(j.title) + '</h3>' +
+          '</div>' +
+          '<span class="job-pay">' + Number(j.hourlyPay).toFixed(2) + ' €/h</span>' +
+        '</div>' +
+        '<p class="job-desc">' + escapeHTML(j.description || "") + '</p>' +
+        '<div class="job-tags">' +
+          (j.shifts || []).map(function(s){ return '<span class="tag shift">' + s + '</span>'; }).join("") +
+          (j.accommodations || []).map(function(a){ return '<span class="tag accom">' + a + '</span>'; }).join("") +
+        '</div>' +
+        (j.firstMessage ? '<div class="job-firstmsg">💬 "' + escapeHTML(j.firstMessage) + '"</div>' : '');
+      grid.appendChild(card);
+    });
+  } catch(e) {
+    console.warn("Could not load jobs", e);
+  }
+}
+
+function escapeHTML(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+// Initial load
+loadRecentJobs();
+</script>
+
+</body>
+</html>

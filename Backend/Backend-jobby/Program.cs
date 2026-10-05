@@ -16,6 +16,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Add ProfileService for multi-candidate session management
 builder.Services.AddScoped<Backend_jobby.Services.ProfileService>();
 
+// Add HttpClient and AI Crawler services
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<Backend_jobby.Services.GeminiStructurerService>();
+builder.Services.AddScoped<Backend_jobby.Services.CvKeskusCrawlerService>();
+
 // Add CORS to allow requests from Frontend (localhost:9090)
 builder.Services.AddCors(options =>
 {
