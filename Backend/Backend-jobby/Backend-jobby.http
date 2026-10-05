@@ -1,0 +1,6 @@
+@Backend_jobby_HostAddress = http://localhost:5125
+
+GET {{Backend_jobby_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
