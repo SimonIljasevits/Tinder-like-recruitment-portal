@@ -220,12 +220,23 @@
     <span class="btns" id="matchBtns"></span>
   </div>
 
+  <!-- NAME POPUP (Session start) -->
+  <div class="matchpop" id="namepop" role="dialog" aria-modal="true" aria-labelledby="namePopTitle">
+    <p class="big" id="namePopTitle">Tere tulemast!</p>
+    <p id="namePopSubtitle" style="color:#E9F0EE;font-size:15px;max-width:28ch;">Sisesta oma nimi, et alustada tööde sirvimist.</p>
+    <form id="nameForm" style="display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:280px;margin-top:8px;">
+      <input type="text" id="nameInput" placeholder="Sinu nimi / Your name" autofocus required style="width:100%;padding:13px 16px;font-size:16px;border-radius:12px;border:1px solid #ccc;background:#fff;color:#111;text-align:center;box-sizing:border-box;outline:none;">
+      <button type="submit" class="bigbtn" id="nameSubmit" style="width:100%;">Alusta</button>
+    </form>
+  </div>
+
   <p class="sr" id="live" aria-live="polite"></p>
 </div>
 </div>
 
 <script src="js/i18n.js"></script>
 <script src="js/data.js"></script>
+<script src="js/api.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

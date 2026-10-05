@@ -212,6 +212,7 @@ function decide(job, liked){
     showMatch(job);
   } else {
     $("live").textContent = L.passed(role);
+    if(window.Api) Api.passJob(job.id);
   }
   renderStack(); renderBadge();
 }
@@ -229,6 +230,7 @@ function doSave(el, job){
   if(S.seen.indexOf(job.id) === -1) S.seen.push(job.id);
   if(S.saved.indexOf(job.id) === -1) S.saved.push(job.id);
   S.history.push({id:job.id, act:"save"});
+  if(window.Api) Api.saveJob(job.id);
   $("live").textContent = t().saved(S.lang === "et" ? job.et : job.en);
   el.classList.add("anim");
   el.style.transform = "translateY(-560px) scale(.92)";
@@ -537,10 +539,9 @@ function slug(s){
 
 function sendCV(job, cv, tailored){
   var L = t();
-  /* Prototüübis on PDF-i tegemine ja saatmine jäljendatud. Päris versioonis
-     käiks siit väljakutse tagarakendusse — vt README. */
   popup(L.sendingBig, L.sendingTxt, job.co, []);
   var file = "CV_" + slug(cv.name) + "_" + slug(S.lang === "et" ? job.et : job.en) + ".pdf";
+  if(window.Api) Api.applyJob(job.id, tailored, cv);
   setTimeout(function(){
     S.sent[job.id] = {at:nowHM(), tailored:tailored, cv:cv, file:file};
     renderBadge();
@@ -648,6 +649,7 @@ function employerMatch(id){
   if(!S.threads[id]){
     S.threads[id] = [{who:"them", et:job.firstEt, en:job.firstEn, time:nowHM()}];
   }
+  if(window.Api) Api.simulateMatch(id);
   renderMatches(); renderBadge();
   openChat(id);
 }
@@ -688,13 +690,15 @@ function escapeHTML(s){
 }
 function send(text){
   if(!text.trim() || S.thread === null) return;
-  S.threads[S.thread].push({who:"me", text:text, time:nowHM()});
+  var id = S.thread;
+  S.threads[id].push({who:"me", text:text, time:nowHM()});
   renderMsgs();
+  if(window.Api) Api.sendMessage(id, text);
   var pool = t().reply;
-  var pick = pool[S.threads[S.thread].length % pool.length];
+  var pick = pool[S.threads[id].length % pool.length];
   setTimeout(function(){
     if(S.thread === null) return;
-    S.threads[S.thread].push({who:"them", text:pick, time:nowHM()});
+    S.threads[id].push({who:"them", text:pick, time:nowHM()});
     renderMsgs(); renderMatches();
   }, 1100);
 }
@@ -849,6 +853,10 @@ function applyLang(){
   $("navMatchesL").textContent = L.navMatches;
   $("navProfileL").textContent = L.navProfile;
   $("stack").setAttribute("aria-label", L.navJobs);
+  if($("namePopTitle")) $("namePopTitle").textContent = L.namePopTitle || "Tere tulemast!";
+  if($("namePopSubtitle")) $("namePopSubtitle").textContent = L.namePopSubtitle || "Sisesta oma nimi, et alustada tööde sirvimist.";
+  if($("nameInput")) $("nameInput").placeholder = L.namePopPlaceholder || "Sinu nimi / Your name";
+  if($("nameSubmit")) $("nameSubmit").textContent = L.namePopBtn || "Alusta";
   renderStack(); renderBadge();
   if(S.tab === "matches") renderMatches();
   if(S.tab === "profile") renderProfile();
@@ -937,6 +945,7 @@ $("stack").addEventListener("keydown", function(e){
 });
 document.addEventListener("keydown", function(e){
   if(e.key !== "Escape") return;
+  if(!$("namepop").hidden) return;
   if(!$("matchpop").hidden){ $("matchpop").hidden = true; return; }
   if(!$("cvview").hidden){ $("cvview").hidden = true; return; }
   if(!$("cvedit").hidden){ $("cvedit").hidden = true; S.cvJob = null; return; }
@@ -944,6 +953,74 @@ document.addEventListener("keydown", function(e){
   if(!$("chat").hidden){ $("chat").hidden = true; S.thread = null; renderMatches(); return; }
   if(!$("setup").hidden){ $("setup").hidden = true; }
 });
+
+/* ------------------------------------------------------------------ */
+/* Backend-integreerimine ja sessioon                                  */
+/* ------------------------------------------------------------------ */
+function mapBackendJob(bj){
+  var id = bj.id;
+  DETAILS[id] = {
+    et: {
+      desc: [bj.description],
+      hours: bj.workingHours || "",
+      place: bj.location || "",
+      start: bj.startDateText || "",
+      offers: bj.offers || []
+    },
+    en: {
+      desc: [bj.description],
+      hours: bj.workingHours || "",
+      place: bj.location || "",
+      start: bj.startDateText || "",
+      offers: bj.offers || []
+    }
+  };
+  return {
+    id: id,
+    co: bj.companyName,
+    ini: bj.companyInitials || (bj.companyName ? bj.companyName.substring(0,2).toUpperCase() : "JO"),
+    pay: Number(bj.hourlyPay),
+    km: Number(bj.distanceKm) || 2.0,
+    days: 1,
+    skill: bj.primarySkill,
+    et: bj.title,
+    en: bj.title,
+    shifts: bj.shifts || [],
+    accom: bj.accommodations || [],
+    reqEt: bj.requirements || [],
+    reqEn: bj.requirements || [],
+    firstEt: bj.firstMessage || "Tere! Nägin su profiili.",
+    firstEn: bj.firstMessage || "Hi! Saw your profile."
+  };
+}
+
+async function initBackendSession(name){
+  if(!window.Api) return;
+  try {
+    await Api.updateProfile({
+      fullName: name,
+      minHourlyPay: S.profile.pay,
+      skills: S.profile.skills,
+      accommodations: S.profile.access,
+      schedules: S.profile.sched,
+      summary: S.cv && S.cv.et ? S.cv.et.summary : "",
+      availability: S.cv && S.cv.et ? S.cv.et.availability : "",
+      conditions: S.cv && S.cv.et ? S.cv.et.conditions : "",
+      experiences: S.cv && S.cv.et ? (S.cv.et.exp || []).map(function(e){
+        return { roleTitle: e.role, organization: e.org, period: e.period, description: e.text };
+      }) : []
+    });
+
+    var bJobs = await Api.getAllJobs();
+    if(bJobs && bJobs.length > 0){
+      JOBS = bJobs.map(mapBackendJob);
+      renderStack();
+      if(deskVisible()) syncDesk();
+    }
+  } catch(err) {
+    console.warn("Backend session sync error:", err);
+  }
+}
 
 /* ------------------------------------------------------------------ */
 /* Käivitus (+ oleku säilitamine uuendusel)                            */
@@ -960,18 +1037,41 @@ function start(saved){
     S.history = saved.history || [];
     S.threads = saved.threads || {};
   }
-  /* Vaate saab ette anda ka lingiga: ...#telefon või ...#arvuti.
-     Muidu kehtib viimati valitud vaade, vaikimisi arvutivaade. */
   var hash = (location.hash || "").replace("#", "").toLowerCase();
   var sv = null;
   try{ sv = localStorage.getItem("sobib-vaade"); }catch(err){}
   if(hash === "telefon" || hash === "phone") setView("phone", false);
   else if(hash === "arvuti" || hash === "desktop") setView("web", false);
   else setView(sv === "phone" ? "phone" : "web");
-  if(!S.cv) S.cv = CV;
+
+  if(!S.cv) S.cv = JSON.parse(JSON.stringify(CV));
   applyLang();
   go("jobs");
+
+  // Kuva nime pop-up uue sessiooni alguses
+  var pop = $("namepop");
+  if(pop){
+    pop.hidden = false;
+    var inp = $("nameInput");
+    if(inp){
+      inp.value = "";
+      setTimeout(function(){ inp.focus(); }, 100);
+    }
+  }
+
+  var form = $("nameForm");
+  if(form){
+    form.onsubmit = function(e){
+      e.preventDefault();
+      var val = ($("nameInput").value || "").trim();
+      if(!val) return;
+      if(S.cv) S.cv.name = val;
+      $("namepop").hidden = true;
+      initBackendSession(val);
+    };
+  }
 }
+
 if(window.claude && window.claude.hot){
   window.claude.hot.snapshot(function(){
     return {lang:S.lang, profile:S.profile, seen:S.seen, applied:S.applied, sent:S.sent,
@@ -983,3 +1083,4 @@ if(window.claude && window.claude.hot && window.claude.hot.ready){
 } else {
   start((window.claude && window.claude.hot && window.claude.hot.data) || null);
 }
+

@@ -71,7 +71,11 @@ var T = {
            "Saadan sulle objekti aadressi ja juhendaja kontakti.",
            "Täpsustan tiimiga ja vastan homme hommikul."],
     passed:function(r){return r+" — jäetud vahele";},
-    matched:function(r){return r+" — CV saadetud";}
+    matched:function(r){return r+" — CV saadetud";},
+    namePopTitle:"Tere tulemast!",
+    namePopSubtitle:"Sisesta oma nimi, et alustada tööde sirvimist.",
+    namePopPlaceholder:"Sinu nimi",
+    namePopBtn:"Alusta"
   },
   en:{
     demo:"Prototype v10", navJobs:"Jobs", navMatches:"Chats", navProfile:"Profile",
@@ -142,7 +146,11 @@ var T = {
            "I'll send you the site address and your supervisor's contact.",
            "Let me check with the team and I'll reply tomorrow morning."],
     passed:function(r){return r+" — passed";},
-    matched:function(r){return r+" — CV sent";}
+    matched:function(r){return r+" — CV sent";},
+    namePopTitle:"Welcome!",
+    namePopSubtitle:"Enter your name to start browsing jobs.",
+    namePopPlaceholder:"Your name",
+    namePopBtn:"Start"
   }
 };
 
