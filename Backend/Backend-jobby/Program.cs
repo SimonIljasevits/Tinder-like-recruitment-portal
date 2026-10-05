@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Backend_jobby.Data;
 using Microsoft.EntityFrameworkCore;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -61,6 +62,13 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference(options =>
+    {
+        options.WithTitle("Tinder-like Recruitment API")
+               .WithTheme(ScalarTheme.Moon)
+               .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
+    });
+    app.MapGet("/", () => Results.Redirect("/scalar/v1"));
 }
 
 app.UseCors("AllowFrontend");
