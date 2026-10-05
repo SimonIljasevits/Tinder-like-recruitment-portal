@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="et">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sobib — tööäpi prototüüp</title>
+<meta name="description" content="Klikitav prototüüp: Tinder-stiilis töövahendus, kus näidatakse ainult 100% sobivaid tööpakkumisi.">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  /* Baasreset. Ülejäänu on css/styles.css */
+  :root{
+    color-scheme:light;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  html,body{margin:0}
+  img{max-width:100%}
+  [hidden]{display:none!important}
+</style>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="shell web" id="shell">
+<div class="app">
+
+  <header class="top">
+    <span class="brand"><span class="mark">S</span><b>Sobib</b></span>
+    <span class="demo-chip" id="demochip">Prototüüp</span>
+    <span class="viewtog" role="group" aria-label="Vaade / View">
+      <button type="button" id="viewWeb" aria-pressed="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M9 20h6M12 17v3"/></svg>
+      </button>
+      <button type="button" id="viewPhone" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M10.8 18.6h2.4"/></svg>
+      </button>
+    </span>
+    <span class="lang" role="group" aria-label="Keel / Language">
+      <button type="button" id="langEt" aria-pressed="true">ET</button>
+      <button type="button" id="langEn" aria-pressed="false">EN</button>
+    </span>
+  </header>
+
+  <!-- TÖÖD -->
+  <section class="view" id="viewJobs">
+    <div class="filterbar">
+      <span class="count" id="fCount"></span>
+      <span class="why" id="fWhy"></span>
+      <button type="button" class="linkbtn" id="btnFilters"></button>
+    </div>
+    <div class="jobsrow">
+    <div class="cardcol">
+    <div class="stack" id="stack" tabindex="0" role="group"></div>
+    <div class="actions">
+      <span class="actwrap">
+        <button type="button" class="act sm undo" id="btnUndo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h11a5 5 0 010 10h-5"/><path d="M8 5L4 9l4 4"/></svg>
+        </button>
+        <span class="actlabel" id="labUndo"></span>
+      </span>
+      <span class="actwrap">
+        <button type="button" class="act lg no" id="btnPass">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+        <span class="actlabel" id="labPass"></span>
+      </span>
+      <span class="actwrap">
+        <button type="button" class="act sm save" id="btnSave">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg>
+        </button>
+        <span class="actlabel" id="labSave"></span>
+      </span>
+      <span class="actwrap">
+        <button type="button" class="act lg yes" id="btnLike">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 6.5"/></svg>
+        </button>
+        <span class="actlabel" id="labLike"></span>
+      </span>
+    </div>
+    <p class="hint" id="hint"></p>
+    </div>
+    <aside class="deskpane" id="deskpane" aria-label="Kuulutus">
+      <div class="deskhead"><span class="logo" id="deskIni" aria-hidden="true"></span><h2 id="deskCo"></h2></div>
+      <div class="scroll" id="deskBody"></div>
+    </aside>
+    </div>
+  </section>
+
+  <!-- SOBIVUSED -->
+  <section class="view" id="viewMatches" hidden>
+    <div class="scroll">
+      <h2 class="secttitle" id="mTitle"></h2>
+      <p class="sectnote" id="mNote"></p>
+      <h3 class="secttitle sub" id="aTitle" hidden></h3>
+      <ul class="mlist" id="aList"></ul>
+      <h3 class="secttitle sub" id="cTitle" hidden></h3>
+      <ul class="mlist" id="mList"></ul>
+      <h3 class="secttitle sub" id="sTitle" hidden></h3>
+      <ul class="mlist" id="sList"></ul>
+    </div>
+  </section>
+
+  <!-- PROFIIL -->
+  <section class="view" id="viewProfile" hidden>
+    <div class="scroll">
+      <h2 class="secttitle" id="pTitle"></h2>
+      <p class="sectnote" id="pNote"></p>
+      <div class="statrow">
+        <span class="stat"><span class="n" id="pStatA"></span><span class="l" id="pStatAL"></span></span>
+        <span class="stat"><span class="n" id="pStatB"></span><span class="l" id="pStatBL"></span></span>
+        <span class="stat"><span class="n" id="pStatC"></span><span class="l" id="pStatCL"></span></span>
+      </div>
+      <div id="pTags"></div>
+      <button type="button" class="bigbtn" id="btnSetup"></button>
+      <button type="button" class="bigbtn ghost" id="btnReset"></button>
+    </div>
+  </section>
+
+  <nav class="nav" aria-label="Põhimenüü">
+    <button type="button" id="navJobs" aria-current="page">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2"/></svg>
+      <span id="navJobsL"></span>
+    </button>
+    <button type="button" id="navMatches">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M21 12a8 8 0 01-11.3 7.3L3 21l1.7-6.7A8 8 0 1121 12z"/></svg>
+      <span id="navMatchesL"></span>
+      <span class="badge" id="navBadge" hidden>0</span>
+    </button>
+    <button type="button" id="navProfile">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20a7.5 7.5 0 0115 0"/></svg>
+      <span id="navProfileL"></span>
+    </button>
+  </nav>
+
+  <!-- SEADISTUS -->
+  <div class="sheet" id="setup" hidden role="dialog" aria-modal="true" aria-labelledby="setupTitle">
+    <div class="sheethead">
+      <h2 id="setupTitle"></h2>
+      <button type="button" class="iconbtn" id="setupClose" aria-label="Sulge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="steps"><span class="on"></span><span></span><span></span></div>
+    <div class="stepintro"><h3 id="stepH"></h3><p id="stepP"></p></div>
+    <div class="scroll" id="stepBody"></div>
+    <p class="livecount" id="liveCount"></p>
+    <div class="sheetfoot">
+      <button type="button" class="bigbtn ghost" id="stepBack"></button>
+      <button type="button" class="bigbtn" id="stepNext"></button>
+    </div>
+  </div>
+
+  <!-- KUULUTUS -->
+  <div class="sheet" id="detail" hidden role="dialog" aria-modal="true" aria-labelledby="dCo">
+    <div class="sheethead">
+      <button type="button" class="iconbtn" id="dBack" aria-label="Tagasi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <h2 id="dCo"></h2>
+    </div>
+    <div class="scroll" id="dBody"></div>
+    <div class="sheetfoot">
+      <button type="button" class="bigbtn ghost" id="dPass"></button>
+      <button type="button" class="bigbtn" id="dLike"></button>
+    </div>
+  </div>
+
+  <!-- CV TOIMETI -->
+  <div class="sheet" id="cvedit" hidden role="dialog" aria-modal="true" aria-labelledby="cvHead">
+    <div class="sheethead">
+      <button type="button" class="iconbtn" id="cvBack" aria-label="Tagasi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <h2 id="cvHead"></h2>
+    </div>
+    <div class="scroll" id="cvBody"></div>
+    <div class="sheetfoot">
+      <button type="button" class="bigbtn ghost" id="cvCancel"></button>
+      <button type="button" class="bigbtn" id="cvSend"></button>
+    </div>
+  </div>
+
+  <!-- SAADETUD CV (ainult vaatamiseks) -->
+  <div class="sheet" id="cvview" hidden role="dialog" aria-modal="true" aria-labelledby="cvvHead">
+    <div class="sheethead">
+      <button type="button" class="iconbtn" id="cvvBack" aria-label="Tagasi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <h2 id="cvvHead"></h2>
+    </div>
+    <div class="scroll" id="cvvBody"></div>
+  </div>
+
+  <!-- VESTLUS -->
+  <div class="sheet" id="chat" hidden role="dialog" aria-modal="true" aria-labelledby="chatTitle">
+    <div class="sheethead">
+      <button type="button" class="iconbtn" id="chatBack" aria-label="Tagasi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <h2 id="chatTitle"></h2>
+    </div>
+    <div class="msgs" id="msgs"></div>
+    <div class="quick" id="quick"></div>
+    <form class="composer" id="composer">
+      <label class="sr" for="msgInput">Sõnum</label>
+      <input id="msgInput" autocomplete="off">
+      <button type="submit" aria-label="Saada">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l16-8-6 16-2.5-6.5L4 12z"/></svg>
+      </button>
+    </form>
+  </div>
+
+  <!-- MATCH -->
+  <div class="matchpop" id="matchpop" hidden role="dialog" aria-modal="true" aria-labelledby="matchBig">
+    <p class="big" id="matchBig"></p>
+    <span class="co" id="matchCo"></span>
+    <p id="matchTxt"></p>
+    <span class="btns" id="matchBtns"></span>
+  </div>
+
+  <p class="sr" id="live" aria-live="polite"></p>
+</div>
+</div>
+
+<script src="js/i18n.js"></script>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
