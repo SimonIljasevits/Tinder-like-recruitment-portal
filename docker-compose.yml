@@ -1,0 +1,48 @@
+services:
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    container_name: recruitment_frontend
+    ports:
+      - "9090:80"
+    volumes:
+      - ./Frontend:/var/www/html
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./Backend/Backend-jobby
+      dockerfile: Dockerfile
+    container_name: recruitment_backend
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=jobby_db;Username=postgres;Password=postgres
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    container_name: recruitment_postgres
+    restart: always
+    ports:
+      - "5555:5432"
+    environment:
+      POSTGRES_DB: jobby_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d jobby_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

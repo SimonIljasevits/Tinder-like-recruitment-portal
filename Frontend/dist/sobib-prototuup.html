@@ -1,0 +1,2270 @@
+<!doctype html>
+<html lang="et">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sobib — tööäpi prototüüp</title>
+<meta name="description" content="Klikitav prototüüp: Tinder-stiilis töövahendus, kus näidatakse ainult 100% sobivaid tööpakkumisi.">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  /* Baasreset. Ülejäänu on css/styles.css */
+  :root{
+    color-scheme:light;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  html,body{margin:0}
+  img{max-width:100%}
+  [hidden]{display:none!important}
+</style>
+<style>
+/* Layout: üks telefoniekraan — päis, kaardipakk, alumine navigatsioon. Töörõivaste paletis: tume tint + ohutuskollane. */
+:root{
+  --bg:#E4E8E7;
+  --surface:#FFFFFF;
+  --surface-2:#F2F5F3;
+  --ink:#12191C;
+  --ink-2:#56646A;
+  --line:#D2D9D7;
+  --hivis:#D4E655;
+  --on-hivis:#12191C;
+  --match:#15795A;
+  --pass:#A8432C;
+  --focus:#1E6FD9;
+  --shadow:0 18px 40px -22px rgba(18,25,28,.45);
+  --font-display:"Archivo","Arial Narrow",Helvetica,sans-serif;
+  --font-body:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B0F11;
+    --surface:#161D21;
+    --surface-2:#1F282C;
+    --ink:#E9F0EE;
+    --ink-2:#9AA8AD;
+    --line:#2B3539;
+    --hivis:#C9DB4B;
+    --on-hivis:#12191C;
+    --match:#46C194;
+    --pass:#E3775C;
+    --focus:#79B2FF;
+    --shadow:0 18px 40px -22px rgba(0,0,0,.8);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B0F11;
+  --surface:#161D21;
+  --surface-2:#1F282C;
+  --ink:#E9F0EE;
+  --ink-2:#9AA8AD;
+  --line:#2B3539;
+  --hivis:#C9DB4B;
+  --on-hivis:#12191C;
+  --match:#46C194;
+  --pass:#E3775C;
+  --focus:#79B2FF;
+  --shadow:0 18px 40px -22px rgba(0,0,0,.8);
+  color-scheme:dark;
+}
+
+html,body{height:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--font-body);
+  font-size:15px;
+  line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:6px}
+
+/* ---------- raam ----------
+   Kõrgus tuleb otse vaateaknast (svh), mitte vanemelementide ahelast —
+   telefonis kukkus height:100% ahel kokku ja kaardipakk kahanes nulli. */
+.shell{
+  height:100%;
+  height:calc(100svh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+  min-height:420px;
+  display:flex;align-items:center;justify-content:center;padding:0;overflow:hidden;
+}
+.app{
+  width:100%;height:100%;min-height:0;
+  display:flex;flex-direction:column;
+  background:var(--surface);
+  position:relative;overflow:hidden;
+}
+.stack{min-height:240px}
+/* kaardipakk ei veni laiaks ekraanil laiali — veerg jääb telefonisõbralikuks */
+.jobsrow{flex:1;min-height:0;display:flex;flex-direction:column}
+.cardcol{flex:1;min-height:0;width:100%;max-width:460px;margin:0 auto;display:flex;flex-direction:column}
+.deskpane{display:none}
+
+/* ---------- päis ---------- */
+.top{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 16px 10px;border-bottom:1px solid var(--line);
+  flex:0 0 auto;background:var(--surface);
+}
+.brand{display:flex;align-items:center;gap:8px;margin-right:auto;min-width:0}
+.mark{
+  width:26px;height:26px;border-radius:7px;background:var(--hivis);color:var(--on-hivis);
+  display:grid;place-items:center;font-family:var(--font-display);font-weight:800;font-size:15px;
+  flex:0 0 auto;
+}
+.brand b{font-family:var(--font-display);font-weight:800;font-size:18px;letter-spacing:-.01em}
+.demo-chip{
+  font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-2);border:1px solid var(--line);border-radius:999px;padding:3px 7px;white-space:nowrap;
+}
+.lang{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;flex:0 0 auto}
+.lang button{
+  background:none;border:0;padding:4px 9px;cursor:pointer;
+  font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--ink-2);
+}
+.lang button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+
+/* ---------- vaated ---------- */
+.view{flex:1;min-height:0;display:flex;flex-direction:column}
+.view[hidden]{display:none}
+
+/* ---------- kaardipakk ---------- */
+.filterbar{
+  display:flex;align-items:center;gap:8px;padding:10px 16px;
+  border-bottom:1px solid var(--line);flex:0 0 auto;background:var(--surface-2);
+}
+.filterbar .count{font-family:var(--font-mono);font-size:12px;font-weight:600;white-space:nowrap;margin-right:auto}
+@media (max-width:430px){ .filterbar .why{display:none} }
+.filterbar .count b{color:var(--match)}
+.filterbar .why{color:var(--ink-2);font-size:12px;margin-right:auto}
+.linkbtn{
+  background:none;border:1px solid var(--line);border-radius:999px;padding:5px 11px;cursor:pointer;
+  font-size:12px;font-weight:600;white-space:nowrap;
+}
+.linkbtn:hover{background:var(--surface)}
+
+/* touch-action:none — vertikaalne swipe peab jõudma meieni, mitte brauseri kerimisse */
+.stack{position:relative;flex:1;min-height:0;padding:14px 16px;touch-action:none}
+.card{
+  position:absolute;inset:14px 16px;
+  background:var(--surface);border:1px solid var(--line);border-radius:18px;
+  box-shadow:var(--shadow);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  will-change:transform;
+  cursor:grab;
+}
+.card.drag{cursor:grabbing;transition:none}
+.card.anim{transition:transform .32s cubic-bezier(.22,.61,.36,1),opacity .32s}
+
+/* fotoala: pilt täidab kaardi, info istub gradiendi peal — Tinderi paigutus */
+.photo{
+  position:relative;flex:1;min-height:0;
+  display:flex;flex-direction:column;justify-content:flex-end;
+  color:#fff;overflow:hidden;
+}
+.glyph{
+  position:absolute;inset:0;display:grid;place-items:center;
+  font-family:var(--font-display);font-weight:800;font-size:min(27vh,160px);line-height:1;
+  color:rgba(255,255,255,.08);user-select:none;
+}
+.segs{position:absolute;top:9px;left:10px;right:10px;display:flex;gap:4px;z-index:3}
+.segs span{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.32)}
+.segs span.on{background:#fff}
+.pill{
+  position:absolute;top:20px;z-index:3;border-radius:999px;padding:4px 9px;
+  font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.04em;
+}
+.pill.km{left:12px;background:rgba(8,10,12,.55);color:#fff}
+.pill.fitp{right:12px;background:var(--match);color:#fff}
+.phmark{
+  position:absolute;top:46%;left:50%;transform:translate(-50%,-50%);z-index:2;
+  font-family:var(--font-mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:rgba(255,255,255,.55);border:1px dashed rgba(255,255,255,.32);
+  border-radius:6px;padding:5px 9px;white-space:nowrap;
+}
+.scrim{
+  position:relative;z-index:2;padding:34px 15px 15px;
+  background:linear-gradient(to top,rgba(8,10,12,.95),rgba(8,10,12,.74) 42%,rgba(8,10,12,0));
+  display:flex;flex-direction:column;gap:5px;
+}
+.crole{
+  margin:0;font-family:var(--font-display);font-weight:800;
+  font-size:clamp(22px,6.6vw,28px);line-height:1.08;letter-spacing:-.02em;
+  text-wrap:balance;color:#fff;padding-right:40px;
+}
+.csub{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;font-size:13.5px;color:rgba(255,255,255,.82)}
+.cpay{font-family:var(--font-display);font-weight:800;font-size:19px;color:var(--hivis)}
+.infobtn{
+  position:absolute;right:13px;bottom:15px;z-index:4;
+  width:34px;height:34px;border-radius:50%;
+  border:1.5px solid rgba(255,255,255,.8);background:rgba(8,10,12,.3);color:#fff;
+  display:grid;place-items:center;cursor:pointer;
+  font-family:var(--font-display);font-weight:700;font-size:16px;line-height:1;
+}
+.under{flex:0 0 auto;padding:10px 13px 12px;background:var(--surface)}
+.card-top{display:flex;align-items:center;gap:10px}
+.logo{
+  width:38px;height:38px;border-radius:10px;flex:0 0 auto;
+  background:var(--surface-2);border:1px solid var(--line);
+  display:grid;place-items:center;
+  font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--ink-2);
+}
+.who{min-width:0;display:flex;flex-direction:column}
+.co{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meta{font-family:var(--font-mono);font-size:11px;color:var(--ink-2)}
+.fit{
+  margin-left:auto;flex:0 0 auto;
+  background:var(--match);color:#fff;border-radius:999px;padding:4px 9px;
+  font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.04em;
+}
+.group{display:flex;flex-direction:column;gap:6px;min-width:0}
+.glabel{
+  margin:0;font-size:10px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-2);
+}
+.chips{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.chips li{
+  background:var(--surface-2);border:1px solid var(--line);border-radius:7px;
+  padding:5px 9px;font-size:12.5px;line-height:1.25;
+}
+.chips.accom li{border-color:color-mix(in srgb,var(--match) 35%,var(--line));background:color-mix(in srgb,var(--match) 8%,var(--surface))}
+.chips li.plus{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-2)}
+.under .chips li{font-size:12px;padding:4px 8px}
+
+/* kuulutuse täisvaade */
+.dhero{display:flex;align-items:center;gap:11px;margin-bottom:18px}
+.dhero h3{
+  margin:0;flex:1;min-width:0;font-family:var(--font-display);font-weight:800;
+  font-size:22px;line-height:1.12;letter-spacing:-.015em;text-wrap:balance;
+}
+.dsect{margin-bottom:18px}
+.dsect .glabel{margin:0 0 7px}
+.dsect p{margin:0 0 9px;font-size:14.5px;max-width:62ch}
+.dsect p:last-child{margin-bottom:0}
+.facts{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 14px;align-items:baseline}
+.facts dt{font-size:12px;color:var(--ink-2);white-space:nowrap}
+.facts dd{margin:0;font-size:14px;min-width:0}
+.checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
+.checks li{display:flex;align-items:flex-start;gap:8px;font-size:14px}
+.checks svg{width:16px;height:16px;flex:0 0 auto;margin-top:3px;color:var(--match)}
+.bullets{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px}
+.bullets li{font-size:14px}
+.dnote{
+  margin:0;padding-top:12px;border-top:1px dashed var(--line);
+  font-size:12px;color:var(--ink-2);
+}
+#detail .sheetfoot .bigbtn{flex:1}
+.stamp{
+  position:absolute;top:52px;z-index:6;
+  font-family:var(--font-display);font-weight:800;font-size:21px;letter-spacing:.06em;text-transform:uppercase;
+  border:3.5px solid;border-radius:9px;padding:6px 12px;opacity:0;pointer-events:none;
+  background:rgba(8,10,12,.25);
+}
+.stamp.like{right:18px;color:#8FE84B;border-color:#8FE84B;transform:rotate(11deg)}
+.stamp.pass{left:18px;color:#FF6B4A;border-color:#FF6B4A;transform:rotate(-11deg)}
+.stamp.keep{top:auto;bottom:38%;left:50%;color:#79B8FF;border-color:#79B8FF;transform:translateX(-50%) rotate(-3deg)}
+
+.empty{
+  position:absolute;inset:14px 16px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;gap:12px;
+  border:1px dashed var(--line);border-radius:var(--r);padding:24px;
+}
+.empty h2{margin:0;font-family:var(--font-display);font-size:20px}
+.empty p{margin:0;color:var(--ink-2);font-size:13.5px;max-width:30ch}
+
+/* ---------- tegevusnupud ---------- */
+.actions{
+  display:flex;align-items:center;justify-content:center;gap:clamp(9px,4vw,18px);
+  padding:10px 14px 12px;flex:0 0 auto;
+}
+.act{
+  border-radius:50%;cursor:pointer;display:grid;place-items:center;
+  border:2px solid;background:var(--surface);
+  transition:transform .12s ease;
+  box-shadow:0 4px 12px -6px rgba(18,25,28,.4);
+}
+.act:active{transform:scale(.9)}
+.act.sm{width:46px;height:46px}
+.act.sm svg{width:20px;height:20px}
+.act.lg{width:62px;height:62px}
+.act.lg svg{width:27px;height:27px}
+.act.undo{border-color:#C9922A;color:#C9922A}
+.act.no{border-color:var(--pass);color:var(--pass)}
+.act.save{border-color:#2E7BD6;color:#2E7BD6}
+.act.yes{border-color:var(--hivis);background:var(--hivis);color:var(--on-hivis)}
+.act[disabled]{opacity:.3;cursor:default;box-shadow:none}
+.actlabel{
+  text-align:center;font-size:10px;color:var(--ink-2);font-weight:600;
+  letter-spacing:.04em;text-transform:uppercase;margin-top:5px;
+}
+.actwrap{display:flex;flex-direction:column;align-items:center}
+@media (max-height:720px){ .actlabel{display:none} .actions{padding-bottom:10px} }
+@media (max-height:660px){ .hint{display:none} .act.lg{width:54px;height:54px} .act.sm{width:42px;height:42px} }
+.hint{text-align:center;font-size:11.5px;color:var(--ink-2);padding:0 16px 10px}
+
+/* ---------- alumine nav ---------- */
+.nav{
+  display:flex;flex:0 0 auto;border-top:1px solid var(--line);background:var(--surface);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.nav button{
+  flex:1;background:none;border:0;cursor:pointer;padding:9px 4px 11px;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  font-size:11px;font-weight:600;color:var(--ink-2);position:relative;
+}
+.nav button svg{width:21px;height:21px}
+.nav button[aria-current="page"]{color:var(--ink)}
+.nav button[aria-current="page"]::after{
+  content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:30px;height:3px;background:var(--hivis);border-radius:0 0 3px 3px;
+}
+.badge{
+  position:absolute;top:5px;right:calc(50% - 22px);
+  min-width:17px;height:17px;border-radius:999px;background:var(--match);color:#fff;
+  font-family:var(--font-mono);font-size:10px;font-weight:600;
+  display:grid;place-items:center;padding:0 4px;
+}
+.badge[hidden]{display:none}
+
+/* ---------- loendid ---------- */
+.scroll{flex:1;min-height:0;overflow-y:auto;padding:14px 16px 20px}
+.secttitle.sub{font-size:16px;margin-top:22px}
+.secttitle{
+  margin:0 0 10px;font-family:var(--font-display);font-size:19px;font-weight:700;letter-spacing:-.01em;
+}
+.sectnote{margin:0 0 14px;color:var(--ink-2);font-size:13px}
+.mlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
+.mrow{
+  display:flex;align-items:center;gap:11px;width:100%;text-align:left;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:11px;cursor:pointer;
+}
+.mrow:hover{background:var(--surface-2)}
+.mrow .who{flex:1}
+.mrow .co{font-size:14.5px}
+.mrow .prev{font-size:12.5px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mrow .dot{width:8px;height:8px;border-radius:50%;background:var(--match);flex:0 0 auto}
+
+/* ---------- profiil ---------- */
+.pgroup{margin-bottom:18px}
+.pgroup h3{
+  margin:0 0 8px;font-size:10px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-2);
+}
+.statrow{
+  display:flex;gap:9px;margin-bottom:18px;
+}
+.stat{
+  flex:1;border:1px solid var(--line);border-radius:var(--r);padding:11px;background:var(--surface-2);
+}
+.stat .n{font-family:var(--font-mono);font-weight:600;font-size:22px;font-variant-numeric:tabular-nums;display:block}
+.stat .l{font-size:11.5px;color:var(--ink-2);line-height:1.3;display:block;margin-top:2px}
+.bigbtn{
+  width:100%;background:var(--hivis);color:var(--on-hivis);border:0;border-radius:11px;
+  padding:14px;font-weight:600;font-size:15px;cursor:pointer;
+}
+.bigbtn.ghost{background:none;color:var(--ink);border:1px solid var(--line)}
+.bigbtn+.bigbtn{margin-top:9px}
+
+/* ---------- ülekatted ---------- */
+.sheet{
+  position:absolute;inset:0;z-index:30;background:var(--surface);
+  display:flex;flex-direction:column;
+}
+.sheet[hidden]{display:none}
+.sheethead{
+  display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);flex:0 0 auto;
+}
+.sheethead h2{margin:0;font-family:var(--font-display);font-size:17px;font-weight:700;flex:1;min-width:0}
+.iconbtn{
+  background:none;border:1px solid var(--line);border-radius:9px;width:34px;height:34px;
+  display:grid;place-items:center;cursor:pointer;flex:0 0 auto;
+}
+.iconbtn svg{width:18px;height:18px}
+
+/* seadistus */
+.steps{display:flex;gap:5px;padding:12px 16px 0}
+.steps span{flex:1;height:4px;border-radius:2px;background:var(--line)}
+.steps span.on{background:var(--hivis)}
+.stepintro{padding:12px 16px 0}
+.stepintro h3{margin:0 0 4px;font-family:var(--font-display);font-size:20px;font-weight:700}
+.stepintro p{margin:0;color:var(--ink-2);font-size:13px}
+.taggrid{display:flex;flex-wrap:wrap;gap:8px}
+.tag{
+  background:var(--surface);border:1px solid var(--line);border-radius:999px;
+  padding:9px 14px;font-size:13.5px;cursor:pointer;
+}
+.tag[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.payrow{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+.payrow .v{font-family:var(--font-mono);font-weight:600;font-size:24px;font-variant-numeric:tabular-nums}
+.payrow .u{font-family:var(--font-mono);font-size:13px;color:var(--ink-2)}
+input[type=range]{width:100%;accent-color:var(--match)}
+.sheetfoot{
+  display:flex;gap:9px;padding:12px 16px;border-top:1px solid var(--line);flex:0 0 auto;
+  padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));
+}
+.sheetfoot .bigbtn{margin-top:0}
+.livecount{
+  font-family:var(--font-mono);font-size:12px;color:var(--ink-2);padding:0 16px 10px;
+}
+.livecount b{color:var(--match)}
+
+/* match-ülekate */
+.matchpop{
+  position:absolute;inset:0;z-index:40;background:color-mix(in srgb,var(--ink) 82%,transparent);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:28px;text-align:center;
+}
+.matchpop[hidden]{display:none}
+.matchpop .big{
+  font-family:var(--font-display);font-weight:800;font-size:clamp(34px,11vw,46px);
+  color:var(--hivis);letter-spacing:-.02em;line-height:1;margin:0;
+}
+.matchpop p{margin:0;color:#E9F0EE;font-size:14.5px;max-width:28ch}
+.matchpop .co{color:#fff;font-weight:600;font-size:17px}
+.matchpop .btns{display:flex;flex-direction:column;gap:9px;width:100%;max-width:280px;margin-top:6px}
+.matchpop .bigbtn.ghost{color:#E9F0EE;border-color:#E9F0EE59}
+
+/* vestlus */
+.msgs{flex:1;min-height:0;overflow-y:auto;padding:14px 14px 10px;display:flex;flex-direction:column;gap:9px}
+.msg{max-width:80%;padding:9px 12px;border-radius:14px;font-size:14px;line-height:1.4}
+.msg.them{background:var(--surface-2);border:1px solid var(--line);border-bottom-left-radius:4px;align-self:flex-start}
+.msg.me{background:var(--ink);color:var(--surface);border-bottom-right-radius:4px;align-self:flex-end}
+.msg .time{display:block;font-family:var(--font-mono);font-size:10px;opacity:.6;margin-top:3px}
+.sysmsg{
+  align-self:center;text-align:center;font-size:11.5px;color:var(--ink-2);
+  background:var(--surface-2);border-radius:999px;padding:5px 12px;
+}
+.quick{display:flex;gap:7px;overflow-x:auto;padding:0 14px 10px}
+.quick button{
+  white-space:nowrap;background:var(--surface);border:1px solid var(--line);border-radius:999px;
+  padding:7px 12px;font-size:13px;cursor:pointer;
+}
+.composer{
+  display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--line);flex:0 0 auto;
+  padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));
+}
+.composer input{
+  flex:1;min-width:0;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;
+  padding:11px 15px;font:inherit;font-size:14px;color:var(--ink);
+}
+.composer button{
+  flex:0 0 auto;width:44px;height:44px;border-radius:50%;border:0;background:var(--hivis);color:var(--on-hivis);
+  display:grid;place-items:center;cursor:pointer;
+}
+.composer button svg{width:19px;height:19px}
+
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- kandideerimised ja CV ---------- */
+.emptyrow{
+  list-style:none;color:var(--ink-2);font-size:13px;line-height:1.5;
+  border:1px dashed var(--line);border-radius:var(--r);padding:14px;
+}
+.appcard{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden}
+.mrow.flat{border:0;border-radius:0;background:none;cursor:default;padding:11px}
+.mrow.flat:hover{background:none}
+.status{
+  flex:0 0 auto;border-radius:999px;padding:4px 9px;
+  font-family:var(--font-mono);font-size:9.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+}
+.status.wait{background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2)}
+.approw{display:flex;gap:7px;padding:0 11px 11px;flex-wrap:wrap}
+.approw .linkbtn.demo{border-style:dashed;color:var(--ink-2)}
+
+.cvfor{
+  margin:0 0 14px;font-family:var(--font-mono);font-size:11.5px;color:var(--ink-2);
+  border-left:3px solid var(--hivis);padding-left:9px;
+}
+.cvhint{
+  background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r);
+  padding:12px;margin-bottom:18px;
+}
+.cvhint h4{margin:0 0 8px;font-size:10px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-2)}
+.cvhint p{margin:9px 0 0;font-size:12.5px;color:var(--ink-2)}
+.cvf{display:flex;flex-direction:column;gap:5px;margin-bottom:13px;min-width:0}
+.cvf > span{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+.cvf > span em{font-style:normal;text-transform:none;letter-spacing:0;font-weight:400;opacity:.8}
+.cvf input,.cvf textarea{
+  width:100%;background:var(--surface);border:1px solid var(--line);border-radius:9px;
+  padding:10px 12px;font:inherit;font-size:14px;color:var(--ink);resize:vertical;
+}
+.cvgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 11px}
+@media (max-width:420px){ .cvgrid{grid-template-columns:1fr} }
+.cvsec{margin:4px 0 9px}
+.cvexp{border:1px solid var(--line);border-radius:var(--r);padding:12px;margin-bottom:11px;background:var(--surface-2)}
+.cvexp .cvf:last-of-type{margin-bottom:9px}
+.cvdel{
+  background:none;border:0;padding:0;cursor:pointer;
+  font-size:12px;font-weight:600;color:var(--pass);
+}
+.cvadd{margin:0 0 18px}
+.cvfile{
+  margin:0 0 16px;font-family:var(--font-mono);font-size:12px;
+  display:flex;gap:9px;align-items:baseline;flex-wrap:wrap;
+}
+.cvfile span{font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-2)}
+.cvdoc{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:20px;max-width:62ch;
+}
+.cvdoc h3{margin:0;font-family:var(--font-display);font-size:23px;font-weight:800;letter-spacing:-.015em}
+.cvdoc .cvmeta{margin:4px 0 18px;font-family:var(--font-mono);font-size:11.5px;color:var(--ink-2)}
+.cvdoc h4{
+  margin:18px 0 7px;font-size:10px;font-weight:600;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--ink-2);
+}
+.cvdoc p{margin:0 0 9px;font-size:14px}
+.cvdoc .cvexpline{margin-bottom:12px}
+.cvdoc .cvper{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-2)}
+
+/* ---------- vaate lüliti päises (ainult laial ekraanil) ---------- */
+.viewtog{display:none}
+@media (min-width:900px){
+  .viewtog{
+    display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;flex:0 0 auto;
+  }
+  .viewtog button{
+    background:none;border:0;padding:5px 10px;cursor:pointer;color:var(--ink-2);
+    display:grid;place-items:center;
+  }
+  .viewtog button svg{width:16px;height:16px;display:block}
+  .viewtog button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+}
+
+/* ---------- telefonivaade arvutis: seadme raam keset lehte ----------
+   .shell saab klassi "web" või "framed". Raamis kehtib telefoni paigutus,
+   sest kõik lauaarvuti reeglid allpool nõuavad .shell.web eesliidet. */
+.shell.framed{padding:22px}
+.shell.framed .app{
+  width:390px;max-width:100%;
+  height:min(820px,100%);
+  border-radius:34px;
+  box-shadow:0 0 0 11px var(--ink), 0 30px 64px -30px rgba(0,0,0,.65);
+}
+@media (max-width:899px){
+  .shell.framed{padding:0}
+  .shell.framed .app{width:100%;height:100%;border-radius:0;box-shadow:none}
+}
+
+/* ---------- lauaarvuti: täisekraan, külgmenüü, kuulutus kõrval ---------- */
+@media (min-width:900px){
+  .shell.web .app{
+    display:grid;
+    grid-template-columns:216px 1fr;
+    grid-template-rows:auto 1fr;
+    grid-template-areas:"top top" "nav main";
+  }
+  .shell.web .top{grid-area:top;padding:14px 20px}
+  .shell.web .brand b{font-size:20px}
+  .shell.web .view{grid-area:main;min-height:0}
+  .shell.web .nav{
+    grid-area:nav;flex-direction:column;align-items:stretch;
+    border-top:0;border-right:1px solid var(--line);background:var(--surface-2);
+    padding:14px 10px;gap:3px;
+  }
+  .shell.web .nav button{
+    flex:0 0 auto;flex-direction:row;justify-content:flex-start;gap:11px;
+    padding:11px 14px;border-radius:9px;font-size:14px;
+  }
+  .shell.web .nav button[aria-current="page"]{background:var(--surface)}
+  .shell.web .nav button[aria-current="page"]::after{
+    top:50%;left:0;transform:translateY(-50%);width:3px;height:22px;border-radius:0 3px 3px 0;
+  }
+  .shell.web .badge{top:9px;right:14px}
+
+  .shell.web .filterbar{padding:12px 24px}
+  .shell.web .jobsrow{flex-direction:row}
+  .shell.web .cardcol{flex:0 0 440px;max-width:440px;margin:0}
+  .shell.web .deskpane{
+    display:flex;flex-direction:column;flex:1;min-width:0;
+    border-left:1px solid var(--line);background:var(--surface-2);
+  }
+  .shell.web .deskhead{
+    display:flex;align-items:center;gap:11px;padding:14px 24px;
+    border-bottom:1px solid var(--line);flex:0 0 auto;background:var(--surface);
+  }
+  .shell.web .deskhead h2{margin:0;font-family:var(--font-display);font-size:18px;font-weight:700;min-width:0}
+  .shell.web .deskpane .scroll{padding:20px 24px 28px;max-width:760px}
+  .shell.web .deskpane .dhero{display:none}
+  .deskrole{
+    margin:0 0 16px;font-family:var(--font-display);font-weight:800;
+    font-size:28px;line-height:1.1;letter-spacing:-.02em;
+  }
+
+  /* sisemised vaated ja ülekatted ei veni üle terve ekraani laiali */
+  .shell.web .view .scroll,
+  .shell.web .sheet .scroll,
+  .shell.web .sheet .sheethead,
+  .shell.web .sheet .sheetfoot,
+  .shell.web .sheet .stepintro,
+  .shell.web .sheet .steps,
+  .shell.web .sheet .livecount,
+  .shell.web .sheet .msgs,
+  .shell.web .sheet .quick,
+  .shell.web .sheet .composer{max-width:720px;margin-left:auto;margin-right:auto;width:100%}
+  .shell.web .hint{max-width:460px;margin:0 auto}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .card.anim{transition:none}
+  .act{transition:none}
+}
+</style>
+</head>
+<body>
+<div class="shell web" id="shell">
+<div class="app">
+
+  <header class="top">
+    <span class="brand"><span class="mark">S</span><b>Sobib</b></span>
+    <span class="demo-chip" id="demochip">Prototüüp</span>
+    <span class="viewtog" role="group" aria-label="Vaade / View">
+      <button type="button" id="viewWeb" aria-pressed="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M9 20h6M12 17v3"/></svg>
+      </button>
+      <button type="button" id="viewPhone" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M10.8 18.6h2.4"/></svg>
+      </button>
+    </span>
+    <span class="lang" role="group" aria-label="Keel / Language">
+      <button type="button" id="langEt" aria-pressed="true">ET</button>
+      <button type="button" id="langEn" aria-pressed="false">EN</button>
+    </span>
+  </header>
+
+  <!-- TÖÖD -->
+  <section class="view" id="viewJobs">
+    <div class="filterbar">
+      <span class="count" id="fCount"></span>
+      <span class="why" id="fWhy"></span>
+      <button type="button" class="linkbtn" id="btnFilters"></button>
+    </div>
+    <div class="jobsrow">
+    <div class="cardcol">
+    <div class="stack" id="stack" tabindex="0" role="group"></div>
+    <div class="actions">
+      <span class="actwrap">
+        <button type="button" class="act sm undo" id="btnUndo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h11a5 5 0 010 10h-5"/><path d="M8 5L4 9l4 4"/></svg>
+        </button>
+        <span class="actlabel" id="labUndo"></span>
+      </span>
+      <span class="actwrap">
+        <button type="button" class="act lg no" id="btnPass">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+        <span class="actlabel" id="labPass"></span>
+      </span>
+      <span class="actwrap">
+        <button type="button" class="act sm save" id="btnSave">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg>
+        </button>
+        <span class="actlabel" id="labSave"></span>
+      </span>
+      <span class="actwrap">
+        <button type="button" class="act lg yes" id="btnLike">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 6.5"/></svg>
+        </button>
+        <span class="actlabel" id="labLike"></span>
+      </span>
+    </div>
+    <p class="hint" id="hint"></p>
+    </div>
+    <aside class="deskpane" id="deskpane" aria-label="Kuulutus">
+      <div class="deskhead"><span class="logo" id="deskIni" aria-hidden="true"></span><h2 id="deskCo"></h2></div>
+      <div class="scroll" id="deskBody"></div>
+    </aside>
+    </div>
+  </section>
+
+  <!-- SOBIVUSED -->
+  <section class="view" id="viewMatches" hidden>
+    <div class="scroll">
+      <h2 class="secttitle" id="mTitle"></h2>
+      <p class="sectnote" id="mNote"></p>
+      <h3 class="secttitle sub" id="aTitle" hidden></h3>
+      <ul class="mlist" id="aList"></ul>
+      <h3 class="secttitle sub" id="cTitle" hidden></h3>
+      <ul class="mlist" id="mList"></ul>
+      <h3 class="secttitle sub" id="sTitle" hidden></h3>
+      <ul class="mlist" id="sList"></ul>
+    </div>
+  </section>
+
+  <!-- PROFIIL -->
+  <section class="view" id="viewProfile" hidden>
+    <div class="scroll">
+      <h2 class="secttitle" id="pTitle"></h2>
+      <p class="sectnote" id="pNote"></p>
+      <div class="statrow">
+        <span class="stat"><span class="n" id="pStatA"></span><span class="l" id="pStatAL"></span></span>
+        <span class="stat"><span class="n" id="pStatB"></span><span class="l" id="pStatBL"></span></span>
+        <span class="stat"><span class="n" id="pStatC"></span><span class="l" id="pStatCL"></span></span>
+      </div>
+      <div id="pTags"></div>
+      <button type="button" class="bigbtn" id="btnSetup"></button>
+      <button type="button" class="bigbtn ghost" id="btnReset"></button>
+    </div>
+  </section>
+
+  <nav class="nav" aria-label="Põhimenüü">
+    <button type="button" id="navJobs" aria-current="page">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2"/></svg>
+      <span id="navJobsL"></span>
+    </button>
+    <button type="button" id="navMatches">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M21 12a8 8 0 01-11.3 7.3L3 21l1.7-6.7A8 8 0 1121 12z"/></svg>
+      <span id="navMatchesL"></span>
+      <span class="badge" id="navBadge" hidden>0</span>
+    </button>
+    <button type="button" id="navProfile">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20a7.5 7.5 0 0115 0"/></svg>
+      <span id="navProfileL"></span>
+    </button>
+  </nav>
+
+  <!-- SEADISTUS -->
+  <div class="sheet" id="setup" hidden role="dialog" aria-modal="true" aria-labelledby="setupTitle">
+    <div class="sheethead">
+      <h2 id="setupTitle"></h2>
+      <button type="button" class="iconbtn" id="setupClose" aria-label="Sulge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="steps"><span class="on"></span><span></span><span></span></div>
+    <div class="stepintro"><h3 id="stepH"></h3><p id="stepP"></p></div>
+    <div class="scroll" id="stepBody"></div>
+    <p class="livecount" id="liveCount"></p>
+    <div class="sheetfoot">
+      <button type="button" class="bigbtn ghost" id="stepBack"></button>
+      <button type="button" class="bigbtn" id="stepNext"></button>
+    </div>
+  </div>
+
+  <!-- KUULUTUS -->
+  <div class="sheet" id="detail" hidden role="dialog" aria-modal="true" aria-labelledby="dCo">
+    <div class="sheethead">
+      <button type="button" class="iconbtn" id="dBack" aria-label="Tagasi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <h2 id="dCo"></h2>
+    </div>
+    <div class="scroll" id="dBody"></div>
+    <div class="sheetfoot">
+      <button type="button" class="bigbtn ghost" id="dPass"></button>
+      <button type="button" class="bigbtn" id="dLike"></button>
+    </div>
+  </div>
+
+  <!-- CV TOIMETI -->
+  <div class="sheet" id="cvedit" hidden role="dialog" aria-modal="true" aria-labelledby="cvHead">
+    <div class="sheethead">
+      <button type="button" class="iconbtn" id="cvBack" aria-label="Tagasi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <h2 id="cvHead"></h2>
+    </div>
+    <div class="scroll" id="cvBody"></div>
+    <div class="sheetfoot">
+      <button type="button" class="bigbtn ghost" id="cvCancel"></button>
+      <button type="button" class="bigbtn" id="cvSend"></button>
+    </div>
+  </div>
+
+  <!-- SAADETUD CV (ainult vaatamiseks) -->
+  <div class="sheet" id="cvview" hidden role="dialog" aria-modal="true" aria-labelledby="cvvHead">
+    <div class="sheethead">
+      <button type="button" class="iconbtn" id="cvvBack" aria-label="Tagasi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <h2 id="cvvHead"></h2>
+    </div>
+    <div class="scroll" id="cvvBody"></div>
+  </div>
+
+  <!-- VESTLUS -->
+  <div class="sheet" id="chat" hidden role="dialog" aria-modal="true" aria-labelledby="chatTitle">
+    <div class="sheethead">
+      <button type="button" class="iconbtn" id="chatBack" aria-label="Tagasi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <h2 id="chatTitle"></h2>
+    </div>
+    <div class="msgs" id="msgs"></div>
+    <div class="quick" id="quick"></div>
+    <form class="composer" id="composer">
+      <label class="sr" for="msgInput">Sõnum</label>
+      <input id="msgInput" autocomplete="off">
+      <button type="submit" aria-label="Saada">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l16-8-6 16-2.5-6.5L4 12z"/></svg>
+      </button>
+    </form>
+  </div>
+
+  <!-- MATCH -->
+  <div class="matchpop" id="matchpop" hidden role="dialog" aria-modal="true" aria-labelledby="matchBig">
+    <p class="big" id="matchBig"></p>
+    <span class="co" id="matchCo"></span>
+    <p id="matchTxt"></p>
+    <span class="btns" id="matchBtns"></span>
+  </div>
+
+  <p class="sr" id="live" aria-live="polite"></p>
+</div>
+</div>
+
+<script>
+/* ------------------------------------------------------------------ */
+/* Tõlked                                                              */
+/* ------------------------------------------------------------------ */
+var T = {
+  et:{
+    demo:"Prototüüp v10", navJobs:"Tööd", navMatches:"Vestlused", navProfile:"Profiil",
+    pass:"Ei sobi", like:"Sobib",
+    hint:"Swipe üles salvestab töö hiljemaks. Puuduta fotot järgmise pildi jaoks, pealkirja terve kuulutuse jaoks.",
+    more:"Vaata tervet kuulutust",
+    photoMark:"näidisfoto", undo:"Tagasi", save:"Salvesta",
+    viewWeb:"Arvutivaade", viewPhone:"Telefonivaade",
+    savedTitle:"Salvestatud hiljemaks", saved:function(r){return r+" — salvestatud";},
+    undone:"Viimane valik võetud tagasi",
+    dAbout:"Töö sisu", dPractical:"Praktiline", dOffers:"Tööandja pakub",
+    lPay:"Tunnitasu", lHours:"Tööaeg", lLoad:"Koormus", lPlace:"Asukoht", lStart:"Alustamine",
+    dYours:"Sinu tingimused — kõik kinnitatud", dOther:"Muud tingimused objektil",
+    noLoad:"Kokkuleppel",
+    filters:"Muuda filtreid",
+    count:function(a,b){return "<b>"+a+"</b> / "+b+" tööd vastavad";},
+    why:"ainult 100% vasted",
+    emptyH:"Tänased tööd läbi vaadatud",
+    emptyP:"Uued pakkumised jõuavad siia kohe, kui tööandjad need lisavad. Või muuda filtreid ja vaata laiemat valikut.",
+    emptyBtn:"Alusta otsast",
+    noneH:"Ükski töö ei vasta kõigile tingimustele",
+    noneP:"Sinu praeguste filtritega pole hetkel ühtegi 100% vastet. Leevenda mõnda tingimust.",
+    noneBtn:"Muuda filtreid",
+    reqs:"Nõuded", accom:"Ligipääsetavus ja tingimused",
+    note:"Sinu profiil on eelkontrollitud — „Sobib“ saadab selle tööandjale kohe.",
+    posted:function(d){return d+" p tagasi";},
+    mTitle:"Kandideerimised", mNote:"Siin on tööd, kuhu oled CV saatnud. Vestlus avaneb siis, kui tööandja sinu profiilile samamoodi vastab.",
+    mEmpty:"Kandideerimisi veel pole. Vali töölehel „Sobib“, et oma CV tööandjale saata.",
+    sentTitle:"Ootavad tööandjat", chatTitle:"Avatud vestlused",
+    statusWait:"Ootab tööandjat", statusMatch:"Match — vestlus avatud",
+    sentAt:function(f,w){return f+" · "+w;},
+    cvOrig:"originaal-CV", cvTailored:"kohandatud CV",
+    simulate:"Demo: vasta tööandjana",
+    viewSent:"Vaata saadetud CV-d",
+    chatEmpty:"Vestlusi veel pole. Vestlus tekib siis, kui tööandja sinu kandideerimisele samamoodi vastab.",
+    pTitle:"Minu profiil", pNote:"Seadistad korra. Pärast seda näeb äpp ainult neid töid, mis vastavad kõigile su tingimustele.",
+    statA:"vastavat tööd", statB:"sobivust", statC:"min. tunnitasu",
+    gSkills:"Oskused", gAccess:"Ligipääsetavus ja füüsilised võimed", gSched:"Graafik ja koormus", gPay:"Tasu",
+    setup:"Muuda profiili", reset:"Lähtesta prototüüp",
+    setupTitle:"Profiili seadistus",
+    step1H:"Mida sa oskad?", step1P:"Vali kõik tööd, mida oled valmis tegema.",
+    step2H:"Mida sa vajad?", step2P:"Näitame ainult töid, kus tööandja on kõik need tingimused kinnitanud.",
+    step3H:"Millal ja mis hinnaga?", step3P:"Vali vahetused, koormus ja madalaim tunnitasu, millega arvestad.",
+    back:"Tagasi", next:"Edasi", done:"Valmis",
+    live:function(n){return "<b>"+n+"</b> tööd vastab praegu nendele tingimustele";},
+    minPay:"Madalaim tunnitasu",
+    askBig:"Saadame CV?",
+    askTxt:function(co){return "Sinu CV läheb otse tööandjale "+co+". Kas saadame praeguse või kohandad selle enne ära?";},
+    askYes:"Jah, saada praegune", askEdit:"Muuda enne saatmist", askCancel:"Tühista",
+    sendingBig:"Saadan…", sendingTxt:"Teen CV-st PDF-i ja saadan tööandjale.",
+    sentBig:"CV saadetud", sentTxt:"Tööandja vaatab selle läbi. Kui ta vastab samamoodi, avaneb teil vestlus.",
+    sentMore:"Sirvi edasi",
+    cvTitle:"Minu CV", cvFor:function(r){return "Kohandatud: "+r;},
+    cvHintH:"Mida see tööandja ootab",
+    cvHintP:"Lisa kokkuvõttesse või kogemusse see, mis siin kirjas — nii paistab taotlus kohandatud, mitte masspakkumisena.",
+    cvName:"Nimi", cvPhone:"Telefon", cvEmail:"E-post", cvCity:"Asukoht",
+    cvSummary:"Kokkuvõte", cvExp:"Töökogemus", cvSkills:"Oskused",
+    cvAvail:"Saadavus", cvCond:"Töötingimused ja ligipääsetavus",
+    cvRole:"Ametinimetus", cvOrg:"Tööandja", cvPeriod:"Periood", cvText:"Kirjeldus",
+    cvAddExp:"Lisa töökogemus", cvDelExp:"Eemalda",
+    cvSend:"Saada PDF-ina", cvCancel:"Tühista",
+    cvSkillsHint:"Üks oskus rea kohta",
+    cvSentTitle:"Saadetud CV", cvFile:"Fail",
+    sys:"Tööandja vastas sinu kandideerimisele", send:"Saada",
+    quick:["Millal saab alustada?","Kas vahetust saab jagada?","Kuidas ligipääs majja käib?","Sobib, saadan CV."],
+    reply:["Tore! Vahetus algab kell 18:00, saame alustada juba esmaspäeval.",
+           "Jah, ligipääs on astmeteta ja lift on olemas.",
+           "Saadan sulle objekti aadressi ja juhendaja kontakti.",
+           "Täpsustan tiimiga ja vastan homme hommikul."],
+    passed:function(r){return r+" — jäetud vahele";},
+    matched:function(r){return r+" — CV saadetud";}
+  },
+  en:{
+    demo:"Prototype v10", navJobs:"Jobs", navMatches:"Chats", navProfile:"Profile",
+    pass:"Pass", like:"Match",
+    hint:"Swipe up to save a job for later. Tap the photo for the next picture, the title for the full listing.",
+    more:"Read the full listing",
+    photoMark:"sample photo", undo:"Undo", save:"Save",
+    viewWeb:"Desktop view", viewPhone:"Phone view",
+    savedTitle:"Saved for later", saved:function(r){return r+" — saved";},
+    undone:"Last choice undone",
+    dAbout:"The work", dPractical:"Practical", dOffers:"The employer provides",
+    lPay:"Hourly pay", lHours:"Hours", lLoad:"Workload", lPlace:"Location", lStart:"Start",
+    dYours:"Your conditions — all confirmed", dOther:"Other conditions on site",
+    noLoad:"By agreement",
+    filters:"Edit filters",
+    count:function(a,b){return "<b>"+a+"</b> / "+b+" jobs match";},
+    why:"100% matches only",
+    emptyH:"You've seen today's jobs",
+    emptyP:"New openings land here as soon as employers post them. Or widen your filters to see more.",
+    emptyBtn:"Start over",
+    noneH:"No job meets every condition",
+    noneP:"Nothing is a 100% match with your current filters. Try relaxing one of them.",
+    noneBtn:"Edit filters",
+    reqs:"Requirements", accom:"Accessibility & conditions",
+    note:"Your profile is pre-verified — “Match” sends it to the employer instantly.",
+    posted:function(d){return d+"d ago";},
+    mTitle:"Applications", mNote:"Jobs you've sent your CV to. A chat opens once the employer responds to your profile the same way.",
+    mEmpty:"No applications yet. Hit “Match” on a job to send the employer your CV.",
+    sentTitle:"Waiting on the employer", chatTitle:"Open chats",
+    statusWait:"Waiting on employer", statusMatch:"Match — chat open",
+    sentAt:function(f,w){return f+" · "+w;},
+    cvOrig:"original CV", cvTailored:"tailored CV",
+    simulate:"Demo: reply as the employer",
+    viewSent:"View the CV you sent",
+    chatEmpty:"No chats yet. A chat appears once an employer responds to your application the same way.",
+    pTitle:"My profile", pNote:"Set this up once. After that the app only shows jobs that meet every one of your conditions.",
+    statA:"matching jobs", statB:"matches", statC:"min. hourly pay",
+    gSkills:"Skills", gAccess:"Accessibility & physical capabilities", gSched:"Schedule & workload", gPay:"Pay",
+    setup:"Edit profile", reset:"Reset prototype",
+    setupTitle:"Profile setup",
+    step1H:"What can you do?", step1P:"Pick every kind of work you're willing to take.",
+    step2H:"What do you need?", step2P:"We only show jobs where the employer has confirmed all of these.",
+    step3H:"When and for how much?", step3P:"Choose shifts, workload and the lowest hourly pay you'll accept.",
+    back:"Back", next:"Next", done:"Done",
+    live:function(n){return "<b>"+n+"</b> jobs currently meet these conditions";},
+    minPay:"Lowest hourly pay",
+    askBig:"Send your CV?",
+    askTxt:function(co){return "Your CV goes straight to "+co+". Send the current one, or tailor it first?";},
+    askYes:"Yes, send current", askEdit:"Edit before sending", askCancel:"Cancel",
+    sendingBig:"Sending…", sendingTxt:"Turning your CV into a PDF and sending it to the employer.",
+    sentBig:"CV sent", sentTxt:"The employer will review it. If they respond the same way, a chat opens between you.",
+    sentMore:"Keep browsing",
+    cvTitle:"My CV", cvFor:function(r){return "Tailored for: "+r;},
+    cvHintH:"What this employer is looking for",
+    cvHintP:"Work these points into your summary or experience — it makes the application read as tailored rather than mass-sent.",
+    cvName:"Name", cvPhone:"Phone", cvEmail:"Email", cvCity:"Location",
+    cvSummary:"Summary", cvExp:"Experience", cvSkills:"Skills",
+    cvAvail:"Availability", cvCond:"Working conditions & accessibility",
+    cvRole:"Job title", cvOrg:"Employer", cvPeriod:"Period", cvText:"Description",
+    cvAddExp:"Add experience", cvDelExp:"Remove",
+    cvSend:"Send as PDF", cvCancel:"Cancel",
+    cvSkillsHint:"One skill per line",
+    cvSentTitle:"CV you sent", cvFile:"File",
+    sys:"The employer responded to your application", send:"Send",
+    quick:["When can I start?","Can the shift be split?","How do I get into the building?","Works for me, sending my CV."],
+    reply:["Great! The shift starts at 18:00, you could begin on Monday.",
+           "Yes, the entrance is step-free and there's a lift.",
+           "I'll send you the site address and your supervisor's contact.",
+           "Let me check with the team and I'll reply tomorrow morning."],
+    passed:function(r){return r+" — passed";},
+    matched:function(r){return r+" — CV sent";}
+  }
+};
+
+/* ------------------------------------------------------------------ */
+/* Sildid                                                              */
+/* ------------------------------------------------------------------ */
+var TAGS = {
+  "commercial":{g:"skills",et:"Ärikliendi koristus",en:"Commercial cleaning"},
+  "floor":{g:"skills",et:"Põrandate poleerimine",en:"Floor buffing"},
+  "windows":{g:"skills",et:"Aknapesu",en:"Window cleaning"},
+  "kitchen":{g:"skills",et:"Köögi puhastus",en:"Kitchen cleaning"},
+  "laundry":{g:"skills",et:"Pesumaja",en:"Laundry"},
+  "warehouse":{g:"skills",et:"Laoabi",en:"Warehouse help"},
+
+  "max10":{g:"access",et:"Max 10 kg tõstmine",en:"Max 10kg lifting"},
+  "stepfree":{g:"access",et:"Astmeteta ligipääs",en:"Step-free access"},
+  "lownoise":{g:"access",et:"Madal müratase",en:"Low-noise"},
+  "mask":{g:"access",et:"Tolmumask olemas",en:"Dust mask provided"},
+  "sitting":{g:"access",et:"Istumispausid",en:"Seated breaks"},
+  "nochem":{g:"access",et:"Ilma tugevate kemikaalideta",en:"No harsh chemicals"},
+
+  "morning":{g:"sched",et:"Hommikune vahetus",en:"Morning shift"},
+  "evening":{g:"sched",et:"Õhtune vahetus",en:"Evening shift"},
+  "night":{g:"sched",et:"Öine vahetus",en:"Night shift"},
+  "weekend":{g:"sched",et:"Nädalavahetus",en:"Weekend"},
+  "parttime":{g:"sched",et:"Osaline koormus",en:"Part-time"},
+  "fulltime":{g:"sched",et:"Täiskoormus",en:"Full-time"}
+};
+function tag(id){ return TAGS[id] ? TAGS[id][S.lang] : id; }
+
+/* ------------------------------------------------------------------ */
+/* Tööpakkumised                                                       */
+/* ------------------------------------------------------------------ */
+var JOBS = [
+  {id:1, co:"CleanSpace Care", ini:"CS", pay:7.00, km:2.5, days:2, skill:"commercial",
+   et:"Ärikliendi öökoristaja", en:"Commercial night cleaner",
+   shifts:["night","evening"], accom:["max10","stepfree","lownoise"],
+   reqEt:["Ärikliendi kogemus","Eesti või vene keel"], reqEn:["Commercial experience","Estonian or Russian"],
+   firstEt:"Tere! Nägin su profiili. Otsime inimest 3 õhtuks nädalas, Ülemiste kontorihoonesse.",
+   firstEn:"Hi! Saw your profile. We need someone 3 evenings a week at the Ülemiste office building."},
+
+  {id:2, co:"Büroohaldus OÜ", ini:"BH", pay:8.20, km:1.2, days:1, skill:"commercial",
+   et:"Hommikune kontorikoristaja", en:"Morning office cleaner",
+   shifts:["morning","parttime"], accom:["max10","stepfree","nochem"],
+   reqEt:["Kell 6–9","Iseseisev töö"], reqEn:["6–9 am","Works independently"],
+   firstEt:"Tere! Meil on vaba hommikune ring kesklinnas. Kas 6–9 sobiks?",
+   firstEn:"Hello! We have a morning round open downtown. Would 6–9 work for you?"},
+
+  {id:3, co:"Polaris Hoolduskeskus", ini:"PH", pay:9.50, km:6.8, days:4, skill:"floor",
+   et:"Põrandahooldaja", en:"Floor care technician",
+   shifts:["night"], accom:["mask","stepfree","max10"],
+   reqEt:["Masinatöö kogemus","Öine vahetus"], reqEn:["Machine experience","Night shift"],
+   firstEt:"Tere! Otsime põrandamasina kogemusega inimest.",
+   firstEn:"Hi! We're looking for someone with floor machine experience."},
+
+  {id:4, co:"Keskuse Kaubamaja", ini:"KK", pay:7.50, km:3.4, days:3, skill:"commercial",
+   et:"Kaubanduskeskuse päevakoristaja", en:"Shopping centre day cleaner",
+   shifts:["morning","evening","parttime"], accom:["stepfree","lownoise","sitting","max10"],
+   reqEt:["Klienditeeninduse hoiak","Kerge füüsiline töö"], reqEn:["Customer-facing","Light physical work"],
+   firstEt:"Tere! Meil on vaba koht päevases tiimis, vahetused 4 tundi.",
+   firstEn:"Hi! We have an opening on the day team, 4-hour shifts."},
+
+  {id:5, co:"Hansa Pesumaja", ini:"HP", pay:8.00, km:4.1, days:6, skill:"laundry",
+   et:"Pesumaja operaator", en:"Laundry operator",
+   shifts:["morning","fulltime"], accom:["stepfree","max10","sitting"],
+   reqEt:["Vahetustega töö","Täiskoormus"], reqEn:["Shift work","Full-time"],
+   firstEt:"Tere! Otsime pesumajja täiskohaga inimest.",
+   firstEn:"Hi! We're hiring full-time for the laundry."},
+
+  {id:6, co:"Hotell Marina", ini:"HM", pay:7.80, km:2.9, days:2, skill:"commercial",
+   et:"Hotelli toateenindaja", en:"Hotel room attendant",
+   shifts:["morning","weekend"], accom:["stepfree","max10"],
+   reqEt:["Nädalavahetused","Hoolikus"], reqEn:["Weekends","Attention to detail"],
+   firstEt:"Tere! Nädalavahetuse vahetused on vabad.",
+   firstEn:"Hi! Weekend shifts are open."},
+
+  {id:7, co:"Klaarkliin OÜ", ini:"KL", pay:9.00, km:5.2, days:5, skill:"windows",
+   et:"Aknapesija (1.–2. korrus)", en:"Window cleaner (floors 1–2)",
+   shifts:["morning"], accom:["stepfree","nochem"],
+   reqEt:["Redeli kasutamine","Hommikune vahetus"], reqEn:["Ladder use","Morning shift"],
+   firstEt:"Tere! Objektid on Mustamäel ja Õismäel.",
+   firstEn:"Hi! The sites are in Mustamäe and Õismäe."},
+
+  {id:8, co:"Toidutehas Verde", ini:"TV", pay:8.60, km:7.5, days:3, skill:"kitchen",
+   et:"Köögi puhastustööline", en:"Kitchen cleaning operative",
+   shifts:["evening","night"], accom:["mask","stepfree","max10"],
+   reqEt:["Toiduohutuse koolitus","Märg keskkond"], reqEn:["Food safety training","Wet environment"],
+   firstEt:"Tere! Koolituse teeme ise, kogemust pole vaja.",
+   firstEn:"Hi! We provide the training, no experience needed."},
+
+  {id:9, co:"Logistika Depoo AS", ini:"LD", pay:8.40, km:9.1, days:7, skill:"warehouse",
+   et:"Laoabiline (kerged kaubad)", en:"Warehouse assistant (light goods)",
+   shifts:["morning","parttime"], accom:["max10","stepfree","lownoise","sitting"],
+   reqEt:["Skanneri kasutamine","Kerged pakid"], reqEn:["Scanner use","Light parcels"],
+   firstEt:"Tere! Töö on pakkide skaneerimine, raskusi ei tõsta.",
+   firstEn:"Hi! The work is scanning parcels, no heavy lifting."},
+
+  {id:10, co:"Sõle Spordikeskus", ini:"SS", pay:7.20, km:1.8, days:1, skill:"commercial",
+   et:"Spordikeskuse koristaja", en:"Sports centre cleaner",
+   shifts:["evening","weekend","parttime"], accom:["stepfree","lownoise","max10","nochem"],
+   reqEt:["Õhtused tunnid","Riietusruumid"], reqEn:["Evening hours","Changing rooms"],
+   firstEt:"Tere! Vahetus on 18–21, bussipeatus maja ees.",
+   firstEn:"Hi! The shift is 18–21, bus stop right outside."},
+
+  {id:11, co:"Puhas Maja OÜ", ini:"PM", pay:7.60, km:3.0, days:2, skill:"commercial",
+   et:"Trepikodade koristaja", en:"Stairwell cleaner",
+   shifts:["evening","parttime"], accom:["stepfree","max10","sitting"],
+   reqEt:["Oma tempos töö","Kortermajad"], reqEn:["Work at your own pace","Apartment buildings"],
+   firstEt:"Tere! Marsruut on 4 maja, teed oma tempos.",
+   firstEn:"Hi! The route is 4 buildings, you set your own pace."},
+
+  {id:12, co:"Tartu Ärimaja", ini:"TÄ", pay:8.90, km:11.4, days:4, skill:"commercial",
+   et:"Õhtune koristaja", en:"Evening cleaner",
+   shifts:["evening","parttime","fulltime"], accom:["stepfree","max10","lownoise","nochem"],
+   reqEt:["Kell 17–21","Lifti kasutus"], reqEn:["5–9 pm","Lift access"],
+   firstEt:"Tere! Oleme Tartus, aga transpordi hüvitame.",
+   firstEn:"Hi! We're in Tartu, but travel is reimbursed."},
+
+  {id:13, co:"Kino Linnuke", ini:"KL", pay:7.40, km:2.1, days:1, skill:"commercial",
+   et:"Saalide koristaja", en:"Auditorium cleaner",
+   shifts:["evening","night","weekend"], accom:["stepfree","max10","lownoise"],
+   reqEt:["Pärast seansse","Kiire tempo"], reqEn:["After screenings","Fast pace"],
+   firstEt:"Tere! Töö käib seansside vahel, 2–3 õhtut nädalas.",
+   firstEn:"Hi! Work happens between screenings, 2–3 evenings a week."},
+
+  {id:14, co:"Hoolekandekeskus Lehola", ini:"HL", pay:8.10, km:4.6, days:3, skill:"commercial",
+   et:"Üldruumide koristaja", en:"Common areas cleaner",
+   shifts:["morning","evening","parttime"], accom:["stepfree","max10","lownoise","sitting","nochem"],
+   reqEt:["Rahulik keskkond","Taustakontroll"], reqEn:["Quiet environment","Background check"],
+   firstEt:"Tere! Meil on rahulik maja, tempo on inimlik.",
+   firstEn:"Hi! It's a calm building and the pace is humane."},
+
+  {id:15, co:"Põrandapesu Grupp", ini:"PG", pay:10.20, km:6.0, days:5, skill:"floor",
+   et:"Põrandate poleerija", en:"Floor polisher",
+   shifts:["evening","parttime"], accom:["stepfree","max10","mask"],
+   reqEt:["Masina väljaõpe kohapeal","Õhtune vahetus"], reqEn:["On-site machine training","Evening shift"],
+   firstEt:"Tere! Masina väljaõppe teeme ise, 2 õhtut nädalas.",
+   firstEn:"Hi! We train you on the machine, 2 evenings a week."}
+];
+
+/* ------------------------------------------------------------------ */
+/* Kuulutuste täistekstid                                              */
+/* ------------------------------------------------------------------ */
+var DETAILS = {
+ 1:{et:{desc:["Koristad Ülemiste ärikvartali kahte kontorikorrust pärast seda, kui töötajad on lahkunud. Töö käib kindla kontrollnimekirja järgi: prügi, lauapinnad, köögid, WC-d ja koridorid.",
+              "Töötad üksi või paarilisega, keegi ei kiirusta taga. Juhendaja käib esimesel kahel korral kaasas."],
+       hours:"E, K, R kell 18:00–22:00", place:"Ülemiste City, Tallinn", start:"Kokkuleppel, soovitavalt 2 nädala jooksul",
+       offers:["Tööriided ja vahendid tööandjalt","Transpordihüvitis 30 €/kuus","Palk kaks korda kuus"]},
+    en:{desc:["You clean two office floors in the Ülemiste business quarter after staff have left. The work follows a fixed checklist: bins, desk surfaces, kitchens, toilets and corridors.",
+              "You work alone or with one colleague, and nobody rushes you. A supervisor joins you for the first two shifts."],
+       hours:"Mon, Wed, Fri 18:00–22:00", place:"Ülemiste City, Tallinn", start:"By agreement, ideally within 2 weeks",
+       offers:["Workwear and equipment provided","€30/month travel allowance","Paid twice a month"]}},
+
+ 2:{et:{desc:["Hommikune ring kolmes kesklinna kontoris enne tööpäeva algust. Igas majas kulub umbes tund.",
+              "Võtmed ja ligipääsukaardid saad kätte esimesel päeval. Ringi järjekorra võid ise paika panna."],
+       hours:"E–R kell 6:00–9:00", place:"Tallinna kesklinn, 3 objekti", start:"Niipea kui võimalik",
+       offers:["Lõplik graafik kokkuleppel","Lõhnatud pesuvahendid","Tööleping, mitte käsundusleping"]},
+    en:{desc:["A morning round through three downtown offices before the working day starts. Each building takes about an hour.",
+              "You get keys and access cards on day one. The order of the round is yours to decide."],
+       hours:"Mon–Fri 6:00–9:00", place:"Tallinn city centre, 3 sites", start:"As soon as possible",
+       offers:["Final schedule by agreement","Fragrance-free products","A proper employment contract"]}},
+
+ 3:{et:{desc:["Hooldad suurte kaubandus- ja tootmispindade põrandaid: pesumasin, poleerija, vahatamine.",
+              "Masinate väljaõpe toimub kohapeal. Varasem kogemus on plussiks, aga mitte tingimus."],
+       hours:"E–N kell 22:00–06:00", place:"Objektid üle Harjumaa", start:"Oktoober",
+       offers:["Masinakoolitus kohapeal","Öötöö lisatasu +25%","Tolmumask ja kõrvaklapid tööandjalt"]},
+    en:{desc:["You maintain floors in large retail and production spaces: scrubber, polisher, waxing.",
+              "Machine training happens on site. Previous experience helps but is not required."],
+       hours:"Mon–Thu 22:00–06:00", place:"Sites across Harju county", start:"October",
+       offers:["On-site machine training","+25% night shift premium","Dust mask and ear defenders provided"]}},
+
+ 4:{et:{desc:["Hoiad keskuse üldalad päeva jooksul korras: põrandad, prügikastid, klaasuksed ja toidukohtade ala.",
+              "Töö on nähtav ja klientide seas, seega sõbralik hoiak on oluline. Pausiruum ja istumiskohad on olemas."],
+       hours:"4-tunnised vahetused, graafik 2 nädalat ette", place:"Kaubanduskeskus, Tallinn", start:"Kohe",
+       offers:["Söögisoodustus keskuses","Istumispaus iga 2 tunni järel","Vahetuse pikkuse saab valida"]},
+    en:{desc:["You keep the centre's common areas in order through the day: floors, bins, glass doors and the food court.",
+              "The work is visible and among customers, so a friendly manner matters. There is a break room with seating."],
+       hours:"4-hour shifts, rota published 2 weeks ahead", place:"Shopping centre, Tallinn", start:"Immediately",
+       offers:["Meal discount in the centre","A seated break every 2 hours","You can choose your shift length"]}},
+
+ 5:{et:{desc:["Laadid ja tühjendad tööstuslikke pesumasinaid, sorteerid ja pakid hotellide voodipesu.",
+              "Enamik tööst käib ühe laua taga istudes või seistes, raskemate koormate juures aitab tõstuk."],
+       hours:"E–R kell 7:00–15:30", place:"Peetri, Rae vald", start:"Kokkuleppel",
+       offers:["Täiskoormus ja kindel graafik","Tasuta transport Tallinnast","Soe lõuna kohapeal"]},
+    en:{desc:["You load and unload industrial washing machines, then sort and pack hotel linen.",
+              "Most of the work happens at one table, sitting or standing; a lift handles the heavier loads."],
+       hours:"Mon–Fri 7:00–15:30", place:"Peetri, Rae municipality", start:"By agreement",
+       offers:["Full-time with a fixed schedule","Free transport from Tallinn","Hot lunch on site"]}},
+
+ 6:{et:{desc:["Valmistad hotellitoad külaliste vahetuseks ette: voodipesu, vannituba, miniköök.",
+              "Tubade arv vahetuses lepitakse ette kokku, see ei ole lõputu nimekiri."],
+       hours:"L ja P kell 9:00–15:00", place:"Tallinna vanalinn", start:"Novembrist",
+       offers:["Nädalavahetuse lisatasu","Hommikusöök vahetuse alguses","Vormiriietus tööandjalt"]},
+    en:{desc:["You prepare hotel rooms between guests: bed linen, bathroom, kitchenette.",
+              "The number of rooms per shift is agreed in advance, not an open-ended list."],
+       hours:"Sat and Sun 9:00–15:00", place:"Tallinn Old Town", start:"From November",
+       offers:["Weekend premium","Breakfast at the start of your shift","Uniform provided"]}},
+
+ 7:{et:{desc:["Pesed kortermajade ja väikeäride aknaid esimesel ja teisel korrusel. Kõrgtööd ei ole.",
+              "Objektide vahel sõidad tööandja autoga. Juhiluba ei ole nõutud — autos on alati paariline."],
+       hours:"E–R kell 8:00–16:00", place:"Mustamäe ja Õismäe", start:"Kokkuleppel",
+       offers:["Lõhnavabad pesuained","Paaristöö, mitte üksinda","Suvekuudel lisatunnid soovi korral"]},
+    en:{desc:["You clean windows on the first and second floors of apartment buildings and small businesses. No work at height.",
+              "You travel between sites in the company car. No driving licence needed — there is always a second person."],
+       hours:"Mon–Fri 8:00–16:00", place:"Mustamäe and Õismäe", start:"By agreement",
+       offers:["Fragrance-free products","You work in a pair, never alone","Extra hours in summer if you want them"]}},
+
+ 8:{et:{desc:["Puhastad toidutootmise seadmeid ja ruume pärast tootmisvahetuse lõppu.",
+              "Toiduohutuse koolituse teeb tööandja esimesel nädalal, varasem kogemus ei ole vajalik."],
+       hours:"E–R kell 17:00–01:00", place:"Jüri, Rae vald", start:"Kohe",
+       offers:["Koolitus ja tervisetõend tööandja kulul","Õhtuse vahetuse lisatasu","Tööbuss Tallinnast"]},
+    en:{desc:["You clean food production equipment and rooms after the production shift ends.",
+              "Food safety training is provided in your first week; no previous experience needed."],
+       hours:"Mon–Fri 17:00–01:00", place:"Jüri, Rae municipality", start:"Immediately",
+       offers:["Training and health certificate paid for","Evening shift premium","Company bus from Tallinn"]}},
+
+ 9:{et:{desc:["Skaneerid ja sorteerid väikepakke lindi ääres. Raskeimad pakid on alla 10 kg.",
+              "Töökoht on reguleeritava kõrgusega, saab vaheldumisi istuda ja seista."],
+       hours:"E–R kell 7:00–11:00", place:"Lao tee, Tallinn", start:"Kohe",
+       offers:["Reguleeritav töölaud ja tool","Vaikne tsoon lindi lõpus","Osalise koormuse leping"]},
+    en:{desc:["You scan and sort small parcels at the belt. The heaviest parcels are under 10 kg.",
+              "The workstation is height-adjustable, so you can alternate between sitting and standing."],
+       hours:"Mon–Fri 7:00–11:00", place:"Lao tee, Tallinn", start:"Immediately",
+       offers:["Adjustable desk and chair","A quiet zone at the end of the belt","Part-time contract"]}},
+
+ 10:{et:{desc:["Koristad riietusruumid, saunad ja saalid pärast õhtuseid treeninguid.",
+               "Keskus on selleks ajaks tühi, muusika on maas ja töötempo on sinu enda määrata."],
+        hours:"E, K, R ja L kell 18:00–21:00", place:"Sõle tänav, Tallinn", start:"Kokkuleppel",
+        offers:["Tasuta jõusaali kasutus","Bussipeatus maja ees","Lõhnavabad puhastusvahendid"]},
+     en:{desc:["You clean the changing rooms, saunas and halls after the evening training sessions.",
+               "The centre is empty by then, the music is off and you set your own pace."],
+        hours:"Mon, Wed, Fri and Sat 18:00–21:00", place:"Sõle street, Tallinn", start:"By agreement",
+        offers:["Free use of the gym","Bus stop right outside","Fragrance-free products"]}},
+
+ 11:{et:{desc:["Hooldad nelja kortermaja trepikodasid: põrandad, käsipuud, postkastide ala ja lift.",
+               "Marsruudi järjekorra ja tempo määrad ise — oluline on, et iga maja saaks nädalas kaks korda korda."],
+        hours:"2 korda nädalas, kellaaeg sinu valida", place:"Kristiine, Tallinn", start:"Kohe",
+        offers:["Vaba graafik nädala sees","Vahendid hoiul majas kohapeal","Istumispausid, kiirustamist ei ole"]},
+     en:{desc:["You look after the stairwells of four apartment buildings: floors, handrails, the mailbox area and the lift.",
+               "You decide the order and the pace — what matters is that each building is done twice a week."],
+        hours:"Twice a week, time of day is yours", place:"Kristiine, Tallinn", start:"Immediately",
+        offers:["Flexible schedule during the week","Equipment stored on site","Seated breaks, no rushing"]}},
+
+ 12:{et:{desc:["Koristad kuuekorruselise ärimaja kontoreid ja ühisalasid pärast tööpäeva lõppu.",
+               "Majas on lift ja astmeteta sissepääs, koristusvankrit ei pea trepist tassima."],
+        hours:"E–R kell 17:00–21:00", place:"Riia tänav, Tartu", start:"Kokkuleppel",
+        offers:["Transpordihüvitis väljastpoolt Tartut","Lõhnavabad ja pehmetoimelised vahendid","Võimalus kasvada objektijuhiks"]},
+     en:{desc:["You clean the offices and shared areas of a six-storey business building after the working day.",
+               "The building has a lift and step-free entry, so the trolley never goes up stairs."],
+        hours:"Mon–Fri 17:00–21:00", place:"Riia street, Tartu", start:"By agreement",
+        offers:["Travel allowance from outside Tartu","Fragrance-free, mild products","A route to site supervisor"]}},
+
+ 13:{et:{desc:["Koristad kinosaalid seansside vahel: popkorn, topsid, istmete read.",
+               "Vahetus on lühike ja selge — kui saalid on puhtad, oled vaba."],
+        hours:"2–3 õhtut nädalas, 19:00–23:00", place:"Kesklinn, Tallinn", start:"Kohe",
+        offers:["Tasuta kinopiletid","Lühikesed vahetused","Vaikne töökeskkond seansside ajal"]},
+     en:{desc:["You clean the auditoriums between screenings: popcorn, cups, rows of seats.",
+               "The shift is short and clear — once the halls are clean, you are done."],
+        hours:"2–3 evenings a week, 19:00–23:00", place:"City centre, Tallinn", start:"Immediately",
+        offers:["Free cinema tickets","Short shifts","A quiet environment during screenings"]}},
+
+ 14:{et:{desc:["Hoiad hoolekandekeskuse koridorid, söögisaali ja ühisruumid korras. Elanike tubadesse sa ei sisene.",
+               "Maja tempo on rahulik ja töö käib kindla päevakava järgi."],
+        hours:"E–R kell 8:00–12:00 või 16:00–20:00", place:"Lehola, Harjumaa", start:"Pärast taustakontrolli",
+        offers:["Rahulik keskkond ja püsiv tiim","Istumispausid personaliruumis","Lõhnavabad vahendid elanike tõttu"]},
+     en:{desc:["You keep the care home's corridors, dining hall and shared rooms in order. You never enter residents' rooms.",
+               "The pace of the house is calm and the work follows a fixed daily routine."],
+        hours:"Mon–Fri 8:00–12:00 or 16:00–20:00", place:"Lehola, Harju county", start:"After a background check",
+        offers:["A calm environment and a settled team","Seated breaks in the staff room","Fragrance-free products for residents"]}},
+
+ 15:{et:{desc:["Poleerid ja hooldad kivi- ja vinüülpõrandaid büroohoonetes õhtusel ajal.",
+               "Masina väljaõpe käib esimesel kahel õhtul koos juhendajaga."],
+        hours:"T ja N kell 18:00–22:00", place:"Tallinn ja Harjumaa", start:"Kokkuleppel",
+        offers:["Valiku kõrgeim tunnitasu","Väljaõpe on tasustatud","Tolmumask ja kõrvaklapid komplektis"]},
+     en:{desc:["You polish and maintain stone and vinyl floors in office buildings in the evenings.",
+               "Machine training runs over your first two evenings alongside a supervisor."],
+        hours:"Tue and Thu 18:00–22:00", place:"Tallinn and Harju county", start:"By agreement",
+        offers:["The highest hourly pay on offer here","Training is paid","Dust mask and ear defenders included"]}}
+};
+
+/* ------------------------------------------------------------------ */
+/* Kasutaja CV — prototüübi näidisandmed                               */
+/* ------------------------------------------------------------------ */
+var CV = {
+  name:"Kadri Lepik",
+  phone:"+372 5512 3487",
+  email:"kadri.lepik@näide.ee",
+  city:"Tallinn, Kristiine",
+  et:{
+    summary:"Kogenud koristaja, kes otsib õhtust osalise koormusega tööd. Töötan hoolikalt ja iseseisvalt, olen harjunud kindla kontrollnimekirja järgi töötama.",
+    availability:"Saadaval E, K, R õhtuti alates kella 17:00. Saan alustada kahe nädala jooksul.",
+    conditions:"Tõstan kuni 10 kg. Vajan astmeteta ligipääsu. Eelistan madala müratasemega keskkonda.",
+    exp:[
+      {role:"Koristaja", org:"Büroohaldus OÜ", period:"2023–2026",
+       text:"Kolme kontorihoone õhtune koristus, 4 tundi vahetuses. Vastutasin oma objektide varude tellimise eest."},
+      {role:"Abitööline", org:"Hansa Pesumaja", period:"2021–2023",
+       text:"Voodipesu sorteerimine ja pakkimine, tööstuslike masinate laadimine."}
+    ],
+    skills:["Ärikliendi koristus","Põrandate poleerimine","Puhastusainete ohutu käsitsemine","Eesti ja vene keel"]
+  },
+  en:{
+    summary:"Experienced cleaner looking for part-time evening work. I work carefully and independently, and I'm used to following a fixed checklist.",
+    availability:"Available Mon, Wed, Fri evenings from 17:00. I can start within two weeks.",
+    conditions:"I lift up to 10 kg. I need step-free access. I prefer a low-noise environment.",
+    exp:[
+      {role:"Cleaner", org:"Büroohaldus OÜ", period:"2023–2026",
+       text:"Evening cleaning of three office buildings, 4-hour shifts. Responsible for ordering supplies for my own sites."},
+      {role:"Assistant", org:"Hansa Pesumaja", period:"2021–2023",
+       text:"Sorting and packing linen, loading industrial machines."}
+    ],
+    skills:["Commercial cleaning","Floor buffing","Safe handling of cleaning agents","Estonian and Russian"]
+  }
+};
+
+/* ------------------------------------------------------------------ */
+/* Olek                                                                */
+/* ------------------------------------------------------------------ */
+var DEFAULTS = {
+  skills:["commercial","floor"],
+  access:["max10","stepfree"],
+  sched:["evening","parttime"],
+  pay:7
+};
+var S = {
+  lang:"et",
+  profile:{skills:DEFAULTS.skills.slice(),access:DEFAULTS.access.slice(),sched:DEFAULTS.sched.slice(),pay:DEFAULTS.pay},
+  seen:[], saved:[], history:[], tab:"jobs", thread:null, step:0, draft:null,
+  applied:[],   /* tööd, kuhu CV on saadetud — ootavad tööandja vastust */
+  sent:{},      /* id -> {at, tailored, cv, file} */
+  matched:[],   /* tööandja vastas samamoodi — alles siis avaneb vestlus */
+  threads:{},
+  cv:null,      /* täidetakse käivitusel CV põhjal */
+  cvDraft:null, cvJob:null,
+  view:"web"    /* laial ekraanil: "web" = täisekraan, "phone" = telefoniraam */
+};
+function t(){ return T[S.lang]; }
+function $(id){ return document.getElementById(id); }
+
+/* ------------------------------------------------------------------ */
+/* Sobivusloogika — töö peab vastama KÕIGILE tingimustele              */
+/* ------------------------------------------------------------------ */
+function fits(job,p){
+  if(p.skills.indexOf(job.skill) === -1) return false;
+  for(var i=0;i<p.access.length;i++){ if(job.accom.indexOf(p.access[i]) === -1) return false; }
+  var okShift = false;
+  for(var j=0;j<p.sched.length;j++){ if(job.shifts.indexOf(p.sched[j]) !== -1) okShift = true; }
+  if(!okShift) return false;
+  if(job.pay < p.pay) return false;
+  return true;
+}
+function matching(p){ return JOBS.filter(function(j){ return fits(j,p||S.profile); }); }
+function deck(){ return matching().filter(function(j){ return S.seen.indexOf(j.id) === -1; }); }
+
+function num(n,d){
+  var s = n.toFixed(d===undefined?2:d);
+  return S.lang === "et" ? s.replace(".",",") : s;
+}
+
+/* ------------------------------------------------------------------ */
+/* Kaardipakk                                                          */
+/* ------------------------------------------------------------------ */
+/* fotode asemel on prototüübis värvitaustad — päris pildid käivad siia samasse kohta */
+function photoBG(job, i){
+  var h = (job.id * 47 + i * 53) % 360;
+  return "radial-gradient(120% 80% at 70% 15%, hsl("+((h+30)%360)+" 42% 34%), transparent 70%),"
+       + "linear-gradient(155deg, hsl("+h+" 38% 30%), hsl("+((h+45)%360)+" 44% 14%))";
+}
+
+function cardHTML(job){
+  var L = t();
+  /* kaardil ainult kõige olulisem — terve kuulutus avaneb ⓘ nupust */
+  var chips = [];
+  job.shifts.forEach(function(s){
+    if(S.profile.sched.indexOf(s) !== -1 && chips.length < 1) chips.push(tag(s));
+  });
+  S.profile.access.forEach(function(a){
+    if(job.accom.indexOf(a) !== -1 && chips.length < 3) chips.push(tag(a));
+  });
+  job.accom.forEach(function(a){
+    if(chips.indexOf(tag(a)) === -1 && chips.length < 3) chips.push(tag(a));
+  });
+  var rest = job.accom.length + 1 - chips.length;
+  return ''
+   + '<div class="photo">'
+   +   '<span class="glyph" aria-hidden="true">'+job.ini+'</span>'
+   +   '<span class="segs" aria-hidden="true"><span class="on"></span><span></span><span></span></span>'
+   +   '<span class="pill km">'+num(job.km,1)+' km</span>'
+   +   '<span class="pill fitp">100%</span>'
+   +   '<span class="phmark">'+L.photoMark+' 1/3</span>'
+   +   '<span class="scrim">'
+   +     '<h2 class="crole">'+(S.lang === "et" ? job.et : job.en)+'</h2>'
+   +     '<span class="csub">'+job.co+' · '+L.posted(job.days)
+   +       '<span class="cpay">'+num(job.pay)+' €/h</span></span>'
+   +   '</span>'
+   +   '<button type="button" class="infobtn" aria-label="'+L.more+'">i</button>'
+   + '</div>'
+   + '<div class="under"><ul class="chips accom">'
+   +   chips.map(function(c){ return "<li>"+c+"</li>"; }).join("")
+   +   (rest > 0 ? '<li class="plus">+'+rest+"</li>" : "")
+   + '</ul></div>'
+   + '<span class="stamp pass">'+L.pass+'</span>'
+   + '<span class="stamp like">'+L.like+'</span>'
+   + '<span class="stamp keep">'+L.save+'</span>';
+}
+
+function renderStack(){
+  var L = t(), d = deck(), all = matching(), stack = $("stack");
+  $("fCount").innerHTML = L.count(all.length, JOBS.length);
+  $("fWhy").textContent = L.why;
+  stack.innerHTML = "";
+
+  if(d.length === 0){
+    var none = all.length === 0;
+    var box = document.createElement("div");
+    box.className = "empty";
+    box.innerHTML = '<h2>'+(none?L.noneH:L.emptyH)+'</h2><p>'+(none?L.noneP:L.emptyP)+'</p>';
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "linkbtn";
+    b.textContent = none ? L.noneBtn : L.emptyBtn;
+    b.onclick = none ? openSetup : function(){ S.seen = []; renderStack(); };
+    box.appendChild(b);
+    stack.appendChild(box);
+    $("btnPass").disabled = true; $("btnLike").disabled = true; $("btnSave").disabled = true;
+    $("btnUndo").disabled = S.history.length === 0;
+    syncDesk();
+    return;
+  }
+
+  $("btnPass").disabled = false; $("btnLike").disabled = false; $("btnSave").disabled = false;
+  $("btnUndo").disabled = S.history.length === 0;
+  d.slice(0,3).reverse().forEach(function(job,i,arr){
+    var depth = arr.length - 1 - i;
+    var el = document.createElement("article");
+    el.className = "card";
+    el.dataset.id = job.id;
+    el.style.transform = "translateY("+(depth*-7)+"px) scale("+(1 - depth*0.035)+")";
+    el.style.zIndex = String(10 - depth);
+    el.innerHTML = cardHTML(job);
+    el.querySelector(".photo").style.background = photoBG(job, 0);
+    if(depth === 0){ el.setAttribute("aria-label", job.co+", "+(S.lang==="et"?job.et:job.en)); armDrag(el, job); }
+    else { el.setAttribute("aria-hidden","true"); el.style.cursor = "default"; }
+    stack.appendChild(el);
+  });
+  syncDesk();
+}
+
+function armDrag(el, job){
+  var x0 = 0, y0 = 0, dx = 0, dy = 0, dragging = false, pid = null, t0 = 0;
+  var like = el.querySelector(".stamp.like"), pass = el.querySelector(".stamp.pass");
+  var keep = el.querySelector(".stamp.keep");
+  function upward(){ return dy < 0 && Math.abs(dy) > Math.abs(dx) * 1.2; }
+
+  var photo = el.querySelector(".photo"), segs = el.querySelectorAll(".segs span");
+  var mark = el.querySelector(".phmark"), shot = 0, downT = null;
+
+  function showPhoto(i){
+    shot = (i + 3) % 3;
+    photo.style.background = photoBG(job, shot);
+    for(var k=0;k<segs.length;k++){ segs[k].className = k === shot ? "on" : ""; }
+    mark.textContent = t().photoMark + " " + (shot+1) + "/3";
+  }
+
+  var infoBtn = el.querySelector(".infobtn");
+  infoBtn.addEventListener("pointerdown", function(e){ e.stopPropagation(); });
+  infoBtn.addEventListener("click", function(e){ e.stopPropagation(); openDetail(job); });
+
+  el.addEventListener("pointerdown", function(e){
+    if(e.button !== undefined && e.button !== 0) return;
+    dragging = true; pid = e.pointerId; t0 = Date.now(); downT = e.target;
+    x0 = e.clientX; y0 = e.clientY; dx = 0; dy = 0;
+    el.classList.add("drag"); el.classList.remove("anim");
+    try{ el.setPointerCapture(pid); }catch(err){}
+  });
+  el.addEventListener("pointermove", function(e){
+    if(!dragging || e.pointerId !== pid) return;
+    dx = e.clientX - x0; dy = e.clientY - y0;
+    var up = upward();
+    el.style.transform = "translate("+dx+"px,"+dy+"px) rotate("+(up ? 0 : dx*0.055)+"deg)";
+    if(up){
+      keep.style.opacity = Math.min(Math.abs(dy)/95, 1);
+      like.style.opacity = 0; pass.style.opacity = 0;
+    } else {
+      var k = Math.min(Math.abs(dx)/95, 1);
+      like.style.opacity = dx > 0 ? k : 0;
+      pass.style.opacity = dx < 0 ? k : 0;
+      keep.style.opacity = 0;
+    }
+  });
+  function end(e){
+    if(!dragging || (e.pointerId !== undefined && e.pointerId !== pid)) return;
+    dragging = false; el.classList.remove("drag");
+    try{ el.releasePointerCapture(pid); }catch(err){}
+    if(upward() && dy < -95){ keep.style.opacity = 1; doSave(el, job); return; }
+    if(Math.abs(dx) > 95){ fly(el, job, dx > 0); return; }
+    el.classList.add("anim");
+    el.style.transform = "translate(0,0) rotate(0deg)";
+    like.style.opacity = 0; pass.style.opacity = 0; keep.style.opacity = 0;
+    /* lühike liikumatu puudutus: fotol = järgmine pilt, info peal = terve kuulutus */
+    if(Math.abs(dx) < 7 && Math.abs(dy) < 7 && Date.now() - t0 < 500){
+      var onInfo = downT && downT.closest && downT.closest(".scrim, .under");
+      if(onInfo){ openDetail(job); return; }
+      var r = photo.getBoundingClientRect();
+      showPhoto(shot + (e.clientX - r.left < r.width * 0.33 ? -1 : 1));
+    }
+  }
+  el.addEventListener("pointerup", end);
+  el.addEventListener("pointercancel", end);
+}
+
+function fly(el, job, liked){
+  var dir = liked ? 1 : -1;
+  el.classList.add("anim");
+  el.style.transform = "translate("+(dir*520)+"px,60px) rotate("+(dir*26)+"deg)";
+  el.style.opacity = "0";
+  el.querySelector(liked ? ".stamp.like" : ".stamp.pass").style.opacity = "1";
+  setTimeout(function(){ decide(job, liked); }, 260);
+}
+
+function decide(job, liked){
+  var L = t(), role = S.lang === "et" ? job.et : job.en;
+  if(S.seen.indexOf(job.id) === -1) S.seen.push(job.id);
+  S.history.push({id:job.id, act:liked ? "like" : "pass"});
+  if(liked){
+    if(S.applied.indexOf(job.id) === -1) S.applied.push(job.id);
+    $("live").textContent = L.matched(role);
+    showMatch(job);
+  } else {
+    $("live").textContent = L.passed(role);
+  }
+  renderStack(); renderBadge();
+}
+
+function topJob(){
+  var top = $("stack").querySelector('.card[data-id]:last-child');
+  if(!top) return null;
+  return {el:top, job:JOBS.filter(function(j){ return String(j.id) === top.dataset.id; })[0]};
+}
+function swipeTop(liked){
+  var t2 = topJob();
+  if(t2 && t2.job) fly(t2.el, t2.job, liked);
+}
+function doSave(el, job){
+  if(S.seen.indexOf(job.id) === -1) S.seen.push(job.id);
+  if(S.saved.indexOf(job.id) === -1) S.saved.push(job.id);
+  S.history.push({id:job.id, act:"save"});
+  $("live").textContent = t().saved(S.lang === "et" ? job.et : job.en);
+  el.classList.add("anim");
+  el.style.transform = "translateY(-560px) scale(.92)";
+  el.style.opacity = "0";
+  setTimeout(function(){ renderStack(); renderBadge(); }, 260);
+}
+function saveTop(){
+  var t2 = topJob();
+  if(t2 && t2.job) doSave(t2.el, t2.job);
+}
+function undo(){
+  var last = S.history.pop();
+  if(!last) return;
+  var k = S.seen.indexOf(last.id);
+  if(k !== -1) S.seen.splice(k,1);
+  if(last.act === "like"){
+    var m = S.applied.indexOf(last.id);
+    if(m !== -1) S.applied.splice(m,1);
+    var mm = S.matched.indexOf(last.id);
+    if(mm !== -1) S.matched.splice(mm,1);
+    delete S.sent[last.id];
+    delete S.threads[last.id];
+  }
+  if(last.act === "save"){
+    var s = S.saved.indexOf(last.id);
+    if(s !== -1) S.saved.splice(s,1);
+  }
+  $("live").textContent = t().undone;
+  renderStack(); renderBadge();
+}
+
+function nowHM(){
+  var d = new Date();
+  return ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);
+}
+
+/* ------------------------------------------------------------------ */
+/* Kuulutuse täisvaade                                                 */
+/* ------------------------------------------------------------------ */
+var openJob = null;
+/* kõrvalpaneel on ainult täisekraani arvutivaates — telefoniraamis mitte */
+function deskVisible(){ return window.innerWidth >= 900 && S.view === "web"; }
+
+function openDetail(job){
+  /* laial ekraanil on kuulutus juba kõrvalpaneelis — ära ava sama asja uuesti */
+  var t2 = topJob();
+  if(deskVisible() && t2 && t2.job && t2.job.id === job.id){
+    $("deskBody").scrollTop = 0;
+    return;
+  }
+  openJob = job;
+  renderDetail();
+  $("detail").hidden = false;
+  $("dBody").scrollTop = 0;
+  $("dBack").focus();
+}
+function renderDetail(){
+  if(!openJob) return;
+  var L = t();
+  $("dCo").textContent = openJob.co;
+  $("dPass").textContent = L.pass;
+  $("dLike").textContent = L.like;
+  $("dBody").innerHTML = detailHTML(openJob);
+}
+function syncDesk(){
+  if(!deskVisible()) return;
+  var t2 = topJob();
+  if(!t2 || !t2.job){
+    $("deskCo").textContent = ""; $("deskIni").textContent = ""; $("deskBody").innerHTML = "";
+    return;
+  }
+  var job = t2.job;
+  $("deskCo").textContent = job.co;
+  $("deskIni").textContent = job.ini;
+  $("deskBody").innerHTML = '<h3 class="deskrole">'+(S.lang === "et" ? job.et : job.en)+'</h3>'
+                          + detailHTML(job);
+  $("deskBody").scrollTop = 0;
+}
+function detailHTML(job){
+  var L = t(), D = DETAILS[job.id][S.lang];
+  var role = S.lang === "et" ? job.et : job.en;
+
+  var load = job.shifts.filter(function(s){ return s === "parttime" || s === "fulltime"; })
+                       .map(function(s){ return tag(s); }).join(" · ") || L.noLoad;
+  var facts = [
+    [L.lPay, num(job.pay)+" €/h"],
+    [L.lHours, D.hours],
+    [L.lLoad, load],
+    [L.lPlace, D.place+" · "+num(job.km,1)+" km"],
+    [L.lStart, D.start]
+  ];
+  var mine = S.profile.access.filter(function(a){ return job.accom.indexOf(a) !== -1; });
+  var other = job.accom.filter(function(a){ return mine.indexOf(a) === -1; });
+  var reqs = S.lang === "et" ? job.reqEt : job.reqEn;
+
+  return ''
+   + '<div class="dhero">'
+   +   '<span class="logo" aria-hidden="true">'+job.ini+'</span>'
+   +   "<h3>"+role+"</h3>"
+   +   '<span class="fit">100%</span>'
+   + '</div>'
+   + '<div class="dsect"><h4 class="glabel">'+L.dAbout+'</h4>'
+   +   D.desc.map(function(p){ return "<p>"+p+"</p>"; }).join("")+'</div>'
+   + '<div class="dsect"><h4 class="glabel">'+L.dPractical+'</h4>'
+   +   '<dl class="facts">'+facts.map(function(f){
+          return "<dt>"+f[0]+"</dt><dd>"+f[1]+"</dd>"; }).join("")+'</dl></div>'
+   + '<div class="dsect"><h4 class="glabel">'+L.reqs+'</h4>'
+   +   '<ul class="chips">'+reqs.map(function(r){ return "<li>"+r+"</li>"; }).join("")+'</ul></div>'
+   + (mine.length ? '<div class="dsect"><h4 class="glabel">'+L.dYours+'</h4>'
+   +   '<ul class="checks">'+mine.map(function(a){
+          return '<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" '
+               + 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5"/></svg>'
+               + tag(a)+"</li>"; }).join("")+'</ul></div>' : '')
+   + (other.length ? '<div class="dsect"><h4 class="glabel">'+L.dOther+'</h4>'
+   +   '<ul class="chips accom">'+other.map(function(a){ return "<li>"+tag(a)+"</li>"; }).join("")+'</ul></div>' : '')
+   + '<div class="dsect"><h4 class="glabel">'+L.dOffers+'</h4>'
+   +   '<ul class="bullets">'+D.offers.map(function(o){ return "<li>"+o+"</li>"; }).join("")+'</ul></div>'
+   + '<p class="dnote">'+L.note+'</p>';
+}
+function closeDetail(){ $("detail").hidden = true; openJob = null; $("stack").focus(); }
+
+/* ------------------------------------------------------------------ */
+/* CV toimeti                                                          */
+/* ------------------------------------------------------------------ */
+function openCvEdit(job){
+  S.cvJob = job;
+  S.cvDraft = cloneCV();
+  renderCvEdit();
+  $("cvedit").hidden = false;
+  $("cvBody").scrollTop = 0;
+}
+
+function field(label, key, value, multi){
+  var tag = multi ? "textarea" : "input";
+  return '<label class="cvf"><span>'+label+'</span>'
+       + '<'+tag+' data-k="'+key+'"'+(multi ? ' rows="'+multi+'"' : ' type="text"')+'>'
+       + (multi ? escapeHTML(value) : '')+'</'+tag+'>'
+       + '</label>';
+}
+
+function renderCvEdit(){
+  var L = t(), job = S.cvJob, d = S.cvDraft;
+  var role = S.lang === "et" ? job.et : job.en;
+  var wants = (S.lang === "et" ? job.reqEt : job.reqEn)
+                .concat(job.accom.map(function(a){ return tag(a); }));
+
+  $("cvHead").textContent = L.cvTitle;
+  $("cvCancel").textContent = L.cvCancel;
+  $("cvSend").textContent = L.cvSend;
+
+  var html = ''
+    + '<p class="cvfor">'+L.cvFor(job.co+" · "+role)+'</p>'
+    + '<div class="cvhint"><h4>'+L.cvHintH+'</h4>'
+    +   '<ul class="chips">'+wants.map(function(w){ return "<li>"+w+"</li>"; }).join("")+'</ul>'
+    +   '<p>'+L.cvHintP+'</p></div>'
+    + '<div class="cvgrid">'
+    +   field(L.cvName,"name") + field(L.cvPhone,"phone")
+    +   field(L.cvEmail,"email") + field(L.cvCity,"city")
+    + '</div>'
+    + field(L.cvSummary,"summary",d.summary,4)
+    + '<h4 class="glabel cvsec">'+L.cvExp+'</h4><div id="cvExp"></div>'
+    + '<button type="button" class="linkbtn cvadd" id="cvAddExp">+ '+L.cvAddExp+'</button>'
+    + '<label class="cvf"><span>'+L.cvSkills+' <em>'+L.cvSkillsHint+'</em></span>'
+    +   '<textarea data-k="skills" rows="4">'+escapeHTML(d.skills.join("\n"))+'</textarea></label>'
+    + field(L.cvAvail,"availability",d.availability,3)
+    + field(L.cvCond,"conditions",d.conditions,3);
+
+  $("cvBody").innerHTML = html;
+
+  /* lihtväljade väärtused paneme JS-iga, et jutumärgid ei lõhuks märgendit */
+  ["name","phone","email","city"].forEach(function(k){
+    var el = $("cvBody").querySelector('[data-k="'+k+'"]');
+    if(el) el.value = d[k];
+  });
+  $("cvBody").addEventListener("input", readCvDraft);
+  $("cvAddExp").onclick = function(){
+    d.exp.push({role:"", org:"", period:"", text:""});
+    renderCvExp();
+  };
+  renderCvExp();
+}
+
+function renderCvExp(){
+  var L = t(), d = S.cvDraft, box = $("cvExp");
+  box.innerHTML = "";
+  d.exp.forEach(function(e, i){
+    var card = document.createElement("div");
+    card.className = "cvexp";
+    card.innerHTML = '<div class="cvgrid">'
+      + '<label class="cvf"><span>'+L.cvRole+'</span><input type="text" data-e="'+i+'" data-k="role"></label>'
+      + '<label class="cvf"><span>'+L.cvOrg+'</span><input type="text" data-e="'+i+'" data-k="org"></label>'
+      + '</div>'
+      + '<label class="cvf"><span>'+L.cvPeriod+'</span><input type="text" data-e="'+i+'" data-k="period"></label>'
+      + '<label class="cvf"><span>'+L.cvText+'</span><textarea rows="3" data-e="'+i+'" data-k="text">'+escapeHTML(e.text)+'</textarea></label>';
+    var del = document.createElement("button");
+    del.type = "button"; del.className = "cvdel"; del.textContent = L.cvDelExp;
+    del.onclick = function(){ d.exp.splice(i,1); renderCvExp(); };
+    card.appendChild(del);
+    box.appendChild(card);
+    ["role","org","period"].forEach(function(k){
+      card.querySelector('[data-e="'+i+'"][data-k="'+k+'"]').value = e[k];
+    });
+  });
+}
+
+function readCvDraft(){
+  var d = S.cvDraft, root = $("cvBody");
+  ["name","phone","email","city","summary","availability","conditions"].forEach(function(k){
+    var el = root.querySelector('[data-k="'+k+'"]:not([data-e])');
+    if(el) d[k] = el.value;
+  });
+  var sk = root.querySelector('[data-k="skills"]');
+  if(sk) d.skills = sk.value.split("\n").map(function(s){ return s.trim(); }).filter(Boolean);
+  d.exp.forEach(function(e, i){
+    ["role","org","period","text"].forEach(function(k){
+      var el = root.querySelector('[data-e="'+i+'"][data-k="'+k+'"]');
+      if(el) e[k] = el.value;
+    });
+  });
+}
+
+function cvPreviewHTML(cv){
+  var L = t();
+  return ''
+   + '<div class="cvdoc">'
+   +   '<h3>'+escapeHTML(cv.name)+'</h3>'
+   +   '<p class="cvmeta">'+escapeHTML(cv.phone)+' · '+escapeHTML(cv.email)+' · '+escapeHTML(cv.city)+'</p>'
+   +   '<h4>'+L.cvSummary+'</h4><p>'+escapeHTML(cv.summary)+'</p>'
+   +   '<h4>'+L.cvExp+'</h4>'
+   +   cv.exp.map(function(e){
+         return '<p class="cvexpline"><b>'+escapeHTML(e.role)+'</b>, '+escapeHTML(e.org)
+              + ' <span class="cvper">'+escapeHTML(e.period)+'</span><br>'+escapeHTML(e.text)+'</p>';
+       }).join("")
+   +   '<h4>'+L.cvSkills+'</h4><ul class="bullets">'
+   +     cv.skills.map(function(s){ return "<li>"+escapeHTML(s)+"</li>"; }).join("")+'</ul>'
+   +   '<h4>'+L.cvAvail+'</h4><p>'+escapeHTML(cv.availability)+'</p>'
+   +   '<h4>'+L.cvCond+'</h4><p>'+escapeHTML(cv.conditions)+'</p>'
+   + '</div>';
+}
+
+function openCvView(id){
+  var L = t(), rec = S.sent[id];
+  if(!rec) return;
+  var job = JOBS.filter(function(j){ return j.id === id; })[0];
+  $("cvvHead").textContent = L.cvSentTitle;
+  $("cvvBody").innerHTML = '<p class="cvfor">'+job.co+' · '+(S.lang === "et" ? job.et : job.en)+'</p>'
+    + '<p class="cvfile"><span>'+L.cvFile+'</span>'+rec.file+'</p>'
+    + cvPreviewHTML(rec.cv);
+  $("cvview").hidden = false;
+  $("cvvBody").scrollTop = 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Match-ülekate                                                       */
+/* ------------------------------------------------------------------ */
+/* Swipe paremale ei ava vestlust, vaid küsib CV saatmise kohta.
+   Vestlus avaneb alles siis, kui tööandja omalt poolt vastab. */
+var pendingMatch = null;
+
+function popup(big, txt, co, buttons){
+  $("matchBig").textContent = big;
+  $("matchCo").textContent = co || "";
+  $("matchTxt").textContent = txt;
+  var box = $("matchBtns");
+  box.innerHTML = "";
+  buttons.forEach(function(b){
+    var el = document.createElement("button");
+    el.type = "button";
+    el.className = "bigbtn" + (b.ghost ? " ghost" : "");
+    el.textContent = b.label;
+    el.onclick = b.go;
+    box.appendChild(el);
+  });
+  $("matchpop").hidden = false;
+  var first = box.querySelector("button");
+  if(first) first.focus();
+}
+
+function showMatch(job){
+  var L = t();
+  pendingMatch = job.id;
+  popup(L.askBig, L.askTxt(job.co), job.co + " · " + (S.lang === "et" ? job.et : job.en), [
+    {label:L.askYes, go:function(){ sendCV(job, cloneCV(), false); }},
+    {label:L.askEdit, ghost:true, go:function(){ $("matchpop").hidden = true; openCvEdit(job); }}
+  ]);
+}
+
+function cloneCV(){
+  var src = S.cv[S.lang];
+  return {
+    name:S.cv.name, phone:S.cv.phone, email:S.cv.email, city:S.cv.city,
+    summary:src.summary, availability:src.availability, conditions:src.conditions,
+    skills:src.skills.slice(),
+    exp:src.exp.map(function(e){ return {role:e.role, org:e.org, period:e.period, text:e.text}; })
+  };
+}
+
+function slug(s){
+  var from = "äöüõšžÄÖÜÕŠŽ", to = "aouoszAOUOSZ", out = "";
+  for(var i=0;i<s.length;i++){
+    var k = from.indexOf(s[i]);
+    out += k === -1 ? s[i] : to[k];
+  }
+  return out.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+function sendCV(job, cv, tailored){
+  var L = t();
+  /* Prototüübis on PDF-i tegemine ja saatmine jäljendatud. Päris versioonis
+     käiks siit väljakutse tagarakendusse — vt README. */
+  popup(L.sendingBig, L.sendingTxt, job.co, []);
+  var file = "CV_" + slug(cv.name) + "_" + slug(S.lang === "et" ? job.et : job.en) + ".pdf";
+  setTimeout(function(){
+    S.sent[job.id] = {at:nowHM(), tailored:tailored, cv:cv, file:file};
+    renderBadge();
+    popup(L.sentBig, L.sentTxt, file, [
+      {label:L.sentMore, go:function(){ $("matchpop").hidden = true; $("stack").focus(); }}
+    ]);
+  }, 1100);
+}
+
+/* ------------------------------------------------------------------ */
+/* Sobivuste loend                                                     */
+/* ------------------------------------------------------------------ */
+function renderMatches(){
+  var L = t();
+  $("mTitle").textContent = L.mTitle;
+  var any = S.applied.length || S.matched.length;
+  $("mNote").textContent = any ? L.mNote : L.mEmpty;
+
+  /* 1. Ootavad tööandja vastust — vestlust ei saa ise alustada */
+  var waiting = S.applied.filter(function(id){ return S.matched.indexOf(id) === -1; });
+  var al = $("aList");
+  al.innerHTML = "";
+  $("aTitle").hidden = waiting.length === 0;
+  $("aTitle").textContent = L.sentTitle;
+  waiting.slice().reverse().forEach(function(id){
+    var job = JOBS.filter(function(j){ return j.id === id; })[0];
+    var rec = S.sent[id] || {};
+    var li = document.createElement("li");
+    li.className = "appcard";
+    li.innerHTML = '<div class="mrow flat">'
+      + '<span class="logo" aria-hidden="true">'+job.ini+'</span>'
+      + '<span class="who"><span class="co">'+job.co+'</span>'
+      + '<span class="prev">'+L.sentAt(rec.at || "", rec.tailored ? L.cvTailored : L.cvOrig)+'</span></span>'
+      + '<span class="status wait">'+L.statusWait+'</span></div>';
+    var row = document.createElement("div");
+    row.className = "approw";
+    var view = document.createElement("button");
+    view.type = "button"; view.className = "linkbtn"; view.textContent = L.viewSent;
+    view.onclick = function(){ openCvView(id); };
+    var sim = document.createElement("button");
+    sim.type = "button"; sim.className = "linkbtn demo"; sim.textContent = L.simulate;
+    sim.onclick = function(){ employerMatch(id); };
+    row.appendChild(view); row.appendChild(sim);
+    li.appendChild(row);
+    al.appendChild(li);
+  });
+
+  /* 2. Avatud vestlused — alles pärast tööandja vastust */
+  var list = $("mList");
+  list.innerHTML = "";
+  $("cTitle").hidden = false;
+  $("cTitle").textContent = L.chatTitle;
+  if(S.matched.length === 0){
+    var none = document.createElement("li");
+    none.className = "emptyrow";
+    none.textContent = L.chatEmpty;
+    list.appendChild(none);
+  }
+  S.matched.slice().reverse().forEach(function(id){
+    var job = JOBS.filter(function(j){ return j.id === id; })[0];
+    var msgs = S.threads[id] || [];
+    var last = msgs[msgs.length-1];
+    var li = document.createElement("li");
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "mrow";
+    b.innerHTML = '<span class="logo" aria-hidden="true">'+job.ini+'</span>'
+      + '<span class="who"><span class="co">'+job.co+'</span>'
+      + '<span class="prev">'+(last ? escapeHTML(S.lang==="et" ? (last.et||last.text) : (last.en||last.text)) : "")+'</span></span>'
+      + (last && last.who === "them" ? '<span class="dot" aria-hidden="true"></span>' : '');
+    b.onclick = function(){ openChat(id); };
+    li.appendChild(b); list.appendChild(li);
+  });
+
+  var sl = $("sList");
+  $("sTitle").hidden = S.saved.length === 0;
+  sl.innerHTML = "";
+  $("sTitle").textContent = L.savedTitle;
+  S.saved.slice().reverse().forEach(function(id){
+    var job = JOBS.filter(function(j){ return j.id === id; })[0];
+    var li = document.createElement("li");
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "mrow";
+    b.innerHTML = '<span class="logo" aria-hidden="true">'+job.ini+'</span>'
+      + '<span class="who"><span class="co">'+(S.lang==="et"?job.et:job.en)+'</span>'
+      + '<span class="prev">'+job.co+' · '+num(job.pay)+' €/h</span></span>';
+    b.onclick = function(){ openDetail(job); };
+    li.appendChild(b); sl.appendChild(li);
+  });
+}
+function renderBadge(){
+  var n = S.applied.length;
+  var b = $("navBadge");
+  b.textContent = String(n);
+  b.hidden = n === 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Vestlus                                                             */
+/* ------------------------------------------------------------------ */
+/* Kuni tööandja vaadet pole, saab tema vastust demo jaoks siit käivitada.
+   Päris versioonis tuleb see tööandja enda swipe'ist. */
+function employerMatch(id){
+  if(S.matched.indexOf(id) === -1) S.matched.push(id);
+  var job = JOBS.filter(function(j){ return j.id === id; })[0];
+  if(!S.threads[id]){
+    S.threads[id] = [{who:"them", et:job.firstEt, en:job.firstEn, time:nowHM()}];
+  }
+  renderMatches(); renderBadge();
+  openChat(id);
+}
+
+function openChat(id){
+  S.thread = id;
+  var job = JOBS.filter(function(j){ return j.id === id; })[0];
+  $("chatTitle").textContent = job.co;
+  renderMsgs();
+  renderQuick();
+  $("chat").hidden = false;
+  $("msgInput").focus();
+}
+function msgText(m){ return m.text !== undefined ? m.text : (S.lang === "et" ? m.et : m.en); }
+function renderMsgs(){
+  var box = $("msgs");
+  box.innerHTML = '<span class="sysmsg">'+t().sys+'</span>';
+  (S.threads[S.thread] || []).forEach(function(m){
+    var d = document.createElement("div");
+    d.className = "msg " + (m.who === "me" ? "me" : "them");
+    d.innerHTML = escapeHTML(msgText(m)) + '<span class="time">'+m.time+'</span>';
+    box.appendChild(d);
+  });
+  box.scrollTop = box.scrollHeight;
+}
+function renderQuick(){
+  var q = $("quick");
+  q.innerHTML = "";
+  t().quick.forEach(function(text){
+    var b = document.createElement("button");
+    b.type = "button"; b.textContent = text;
+    b.onclick = function(){ send(text); };
+    q.appendChild(b);
+  });
+}
+function escapeHTML(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function send(text){
+  if(!text.trim() || S.thread === null) return;
+  S.threads[S.thread].push({who:"me", text:text, time:nowHM()});
+  renderMsgs();
+  var pool = t().reply;
+  var pick = pool[S.threads[S.thread].length % pool.length];
+  setTimeout(function(){
+    if(S.thread === null) return;
+    S.threads[S.thread].push({who:"them", text:pick, time:nowHM()});
+    renderMsgs(); renderMatches();
+  }, 1100);
+}
+
+/* ------------------------------------------------------------------ */
+/* Profiil                                                             */
+/* ------------------------------------------------------------------ */
+function renderProfile(){
+  var L = t();
+  $("pTitle").textContent = L.pTitle;
+  $("pNote").textContent = L.pNote;
+  $("pStatA").textContent = matching().length;
+  $("pStatAL").textContent = L.statA;
+  $("pStatB").textContent = S.matched.length;
+  $("pStatBL").textContent = L.statB;
+  $("pStatC").textContent = num(S.profile.pay) + " €";
+  $("pStatCL").textContent = L.statC;
+  $("btnSetup").textContent = L.setup;
+  $("btnReset").textContent = L.reset;
+
+  var groups = [["skills",L.gSkills],["access",L.gAccess],["sched",L.gSched]];
+  $("pTags").innerHTML = groups.map(function(g){
+    var ids = S.profile[g[0]];
+    return '<div class="pgroup"><h3>'+g[1]+'</h3><ul class="chips">'
+      + (ids.length ? ids.map(function(i){ return "<li>"+tag(i)+"</li>"; }).join("") : "<li>—</li>")
+      + '</ul></div>';
+  }).join("");
+}
+
+/* ------------------------------------------------------------------ */
+/* Seadistusviisard                                                    */
+/* ------------------------------------------------------------------ */
+var STEPS = [
+  {key:"skills", g:"skills"},
+  {key:"access", g:"access"},
+  {key:"sched",  g:"sched", pay:true}
+];
+function openSetup(){
+  S.draft = {
+    skills:S.profile.skills.slice(), access:S.profile.access.slice(),
+    sched:S.profile.sched.slice(), pay:S.profile.pay
+  };
+  S.step = 0;
+  $("setup").hidden = false;
+  renderStep();
+}
+function renderStep(){
+  var L = t(), st = STEPS[S.step];
+  $("setupTitle").textContent = L.setupTitle;
+  var dots = $("setup").querySelectorAll(".steps span");
+  for(var i=0;i<dots.length;i++){ dots[i].className = i <= S.step ? "on" : ""; }
+  $("stepH").textContent = L["step"+(S.step+1)+"H"];
+  $("stepP").textContent = L["step"+(S.step+1)+"P"];
+  $("stepBack").textContent = L.back;
+  $("stepBack").disabled = S.step === 0;
+  $("stepNext").textContent = S.step === STEPS.length-1 ? L.done : L.next;
+
+  var body = $("stepBody");
+  body.innerHTML = "";
+  var grid = document.createElement("div");
+  grid.className = "taggrid";
+  Object.keys(TAGS).forEach(function(id){
+    if(TAGS[id].g !== st.g) return;
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "tag"; b.textContent = tag(id);
+    var on = S.draft[st.key].indexOf(id) !== -1;
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+    b.onclick = function(){
+      var arr = S.draft[st.key], k = arr.indexOf(id);
+      if(k === -1) arr.push(id); else arr.splice(k,1);
+      b.setAttribute("aria-pressed", k === -1 ? "true" : "false");
+      liveCount();
+    };
+    grid.appendChild(b);
+  });
+  body.appendChild(grid);
+
+  if(st.pay){
+    var wrap = document.createElement("div");
+    wrap.style.marginTop = "20px";
+    wrap.innerHTML = '<h3 class="glabel" style="margin:0 0 6px">'+L.minPay+'</h3>'
+      + '<div class="payrow"><span class="v" id="payV">'+num(S.draft.pay)+'</span><span class="u">€/h</span></div>';
+    var r = document.createElement("input");
+    r.type = "range"; r.min = "5"; r.max = "12"; r.step = "0.1";
+    r.value = String(S.draft.pay); r.id = "payRange";
+    r.setAttribute("aria-label", L.minPay);
+    r.oninput = function(){
+      S.draft.pay = parseFloat(r.value);
+      $("payV").textContent = num(S.draft.pay);
+      liveCount();
+    };
+    wrap.appendChild(r);
+    body.appendChild(wrap);
+  }
+  liveCount();
+}
+function liveCount(){
+  $("liveCount").innerHTML = t().live(matching(S.draft).length);
+}
+
+/* ------------------------------------------------------------------ */
+/* Navigatsioon ja keel                                                */
+/* ------------------------------------------------------------------ */
+function go(tab){
+  S.tab = tab;
+  $("viewJobs").hidden = tab !== "jobs";
+  $("viewMatches").hidden = tab !== "matches";
+  $("viewProfile").hidden = tab !== "profile";
+  [["navJobs","jobs"],["navMatches","matches"],["navProfile","profile"]].forEach(function(p){
+    if(tab === p[1]) $(p[0]).setAttribute("aria-current","page");
+    else $(p[0]).removeAttribute("aria-current");
+  });
+  if(tab === "matches") renderMatches();
+  if(tab === "profile") renderProfile();
+}
+
+/* remember=false: ühekordne vaade (nt lingist #telefon). Nii ei jää tavaline
+   index.html hiljem telefonivaatesse kinni — eelistust muudab ainult lüliti. */
+function setView(v, remember){
+  S.view = v;
+  var shell = $("shell");
+  shell.classList.toggle("web", v === "web");
+  shell.classList.toggle("framed", v === "phone");
+  $("viewWeb").setAttribute("aria-pressed", v === "web" ? "true" : "false");
+  $("viewPhone").setAttribute("aria-pressed", v === "phone" ? "true" : "false");
+  if(remember !== false){
+    try{ localStorage.setItem("sobib-vaade", v); }catch(err){}
+  }
+  renderStack();
+}
+
+function applyLang(){
+  var L = t();
+  $("viewWeb").title = L.viewWeb;
+  $("viewPhone").title = L.viewPhone;
+  $("viewWeb").setAttribute("aria-label", L.viewWeb);
+  $("viewPhone").setAttribute("aria-label", L.viewPhone);
+  $("demochip").textContent = L.demo;
+  $("langEt").setAttribute("aria-pressed", S.lang === "et" ? "true" : "false");
+  $("langEn").setAttribute("aria-pressed", S.lang === "en" ? "true" : "false");
+  $("labPass").textContent = L.pass;
+  $("labLike").textContent = L.like;
+  $("labUndo").textContent = L.undo;
+  $("labSave").textContent = L.save;
+  $("btnPass").setAttribute("aria-label", L.pass);
+  $("btnLike").setAttribute("aria-label", L.like);
+  $("btnUndo").setAttribute("aria-label", L.undo);
+  $("btnSave").setAttribute("aria-label", L.save);
+  $("hint").textContent = L.hint;
+  $("btnFilters").textContent = L.filters;
+  $("navJobsL").textContent = L.navJobs;
+  $("navMatchesL").textContent = L.navMatches;
+  $("navProfileL").textContent = L.navProfile;
+  $("stack").setAttribute("aria-label", L.navJobs);
+  renderStack(); renderBadge();
+  if(S.tab === "matches") renderMatches();
+  if(S.tab === "profile") renderProfile();
+  if(!$("setup").hidden) renderStep();
+  if(!$("detail").hidden) renderDetail();
+  if(!$("cvedit").hidden) renderCvEdit();
+  if(!$("chat").hidden){ renderMsgs(); renderQuick(); }
+}
+
+/* ------------------------------------------------------------------ */
+/* Sündmused                                                           */
+/* ------------------------------------------------------------------ */
+$("btnPass").onclick = function(){ swipeTop(false); };
+$("btnLike").onclick = function(){ swipeTop(true); };
+$("btnSave").onclick = saveTop;
+$("btnUndo").onclick = undo;
+$("btnFilters").onclick = openSetup;
+$("btnSetup").onclick = openSetup;
+$("btnReset").onclick = function(){
+  S.profile = {skills:DEFAULTS.skills.slice(),access:DEFAULTS.access.slice(),sched:DEFAULTS.sched.slice(),pay:DEFAULTS.pay};
+  S.seen = []; S.applied = []; S.sent = {}; S.matched = []; S.saved = []; S.history = []; S.threads = {};
+  S.cv = CV;
+  renderStack(); renderBadge(); renderProfile(); go("jobs");
+};
+$("navJobs").onclick = function(){ go("jobs"); };
+$("navMatches").onclick = function(){ go("matches"); };
+$("navProfile").onclick = function(){ go("profile"); };
+
+$("viewWeb").onclick = function(){ setView("web"); };
+$("viewPhone").onclick = function(){ setView("phone"); };
+
+$("langEt").onclick = function(){ S.lang = "et"; applyLang(); };
+$("langEn").onclick = function(){ S.lang = "en"; applyLang(); };
+
+$("setupClose").onclick = function(){ $("setup").hidden = true; };
+$("stepBack").onclick = function(){ if(S.step > 0){ S.step--; renderStep(); } };
+$("stepNext").onclick = function(){
+  if(S.step < STEPS.length-1){ S.step++; renderStep(); return; }
+  S.profile = {skills:S.draft.skills.slice(),access:S.draft.access.slice(),sched:S.draft.sched.slice(),pay:S.draft.pay};
+  /* uute filtritega saab varem vahele jäetud tööd uuesti näha; sobivused jäävad pakist välja */
+  S.seen = S.applied.concat(S.saved);
+  $("setup").hidden = true;
+  renderStack(); renderProfile(); go("jobs");
+};
+
+$("dBack").onclick = closeDetail;
+$("dPass").onclick = function(){ $("detail").hidden = true; openJob = null; swipeTop(false); };
+$("dLike").onclick = function(){ $("detail").hidden = true; openJob = null; swipeTop(true); };
+
+$("cvBack").onclick = function(){ $("cvedit").hidden = true; S.cvJob = null; };
+$("cvCancel").onclick = function(){ $("cvedit").hidden = true; S.cvJob = null; };
+$("cvSend").onclick = function(){
+  readCvDraft();
+  var job = S.cvJob;
+  $("cvedit").hidden = true;
+  S.cvJob = null;
+  sendCV(job, S.cvDraft, true);
+};
+$("cvvBack").onclick = function(){ $("cvview").hidden = true; };
+
+$("chatBack").onclick = function(){ $("chat").hidden = true; S.thread = null; renderMatches(); };
+$("composer").onsubmit = function(e){
+  e.preventDefault();
+  var i = $("msgInput");
+  send(i.value);
+  i.value = "";
+};
+
+var deskWas = deskVisible();
+window.addEventListener("resize", function(){
+  var now = deskVisible();
+  if(now !== deskWas){ deskWas = now; renderStack(); }
+  else if(now) syncDesk();
+});
+
+$("stack").addEventListener("keydown", function(e){
+  if(e.key === "ArrowLeft"){ e.preventDefault(); swipeTop(false); }
+  if(e.key === "ArrowRight"){ e.preventDefault(); swipeTop(true); }
+  if(e.key === "ArrowUp"){ e.preventDefault(); saveTop(); }
+  if(e.key === "Enter"){
+    var top = $("stack").querySelector('.card[data-id]:last-child');
+    if(!top) return;
+    var job = JOBS.filter(function(j){ return String(j.id) === top.dataset.id; })[0];
+    if(job){ e.preventDefault(); openDetail(job); }
+  }
+});
+document.addEventListener("keydown", function(e){
+  if(e.key !== "Escape") return;
+  if(!$("matchpop").hidden){ $("matchpop").hidden = true; return; }
+  if(!$("cvview").hidden){ $("cvview").hidden = true; return; }
+  if(!$("cvedit").hidden){ $("cvedit").hidden = true; S.cvJob = null; return; }
+  if(!$("detail").hidden){ closeDetail(); return; }
+  if(!$("chat").hidden){ $("chat").hidden = true; S.thread = null; renderMatches(); return; }
+  if(!$("setup").hidden){ $("setup").hidden = true; }
+});
+
+/* ------------------------------------------------------------------ */
+/* Käivitus (+ oleku säilitamine uuendusel)                            */
+/* ------------------------------------------------------------------ */
+function start(saved){
+  if(saved && saved.profile){
+    S.lang = saved.lang || "et";
+    S.profile = saved.profile;
+    S.seen = saved.seen || [];
+    S.applied = saved.applied || [];
+    S.sent = saved.sent || {};
+    S.matched = saved.matched || [];
+    S.saved = saved.saved || [];
+    S.history = saved.history || [];
+    S.threads = saved.threads || {};
+  }
+  /* Vaate saab ette anda ka lingiga: ...#telefon või ...#arvuti.
+     Muidu kehtib viimati valitud vaade, vaikimisi arvutivaade. */
+  var hash = (location.hash || "").replace("#", "").toLowerCase();
+  var sv = null;
+  try{ sv = localStorage.getItem("sobib-vaade"); }catch(err){}
+  if(hash === "telefon" || hash === "phone") setView("phone", false);
+  else if(hash === "arvuti" || hash === "desktop") setView("web", false);
+  else setView(sv === "phone" ? "phone" : "web");
+  if(!S.cv) S.cv = CV;
+  applyLang();
+  go("jobs");
+}
+if(window.claude && window.claude.hot){
+  window.claude.hot.snapshot(function(){
+    return {lang:S.lang, profile:S.profile, seen:S.seen, applied:S.applied, sent:S.sent,
+            matched:S.matched, saved:S.saved, history:S.history, threads:S.threads};
+  });
+}
+if(window.claude && window.claude.hot && window.claude.hot.ready){
+  window.claude.hot.ready(start);
+} else {
+  start((window.claude && window.claude.hot && window.claude.hot.data) || null);
+}
+</script>
+</body>
+</html>
