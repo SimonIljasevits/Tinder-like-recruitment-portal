@@ -1,6 +1,7 @@
 using Backend_jobby.Data;
 using Backend_jobby.DTOs;
 using Backend_jobby.Models;
+using Backend_jobby.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,51 +12,47 @@ namespace Backend_jobby.Controllers;
 public class JobseekerController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly ProfileService _profileService;
 
-    public JobseekerController(AppDbContext context)
+    public JobseekerController(AppDbContext context, ProfileService profileService)
     {
         _context = context;
+        _profileService = profileService;
     }
 
     // GET: api/jobseeker/profile
     [HttpGet("profile")]
-    public async Task<ActionResult<JobseekerProfileDto>> GetProfile()
+    public async Task<ActionResult<JobseekerProfileDto>> GetProfile(
+        [FromHeader(Name = "X-Candidate-Name")] string? headerName,
+        [FromQuery] string? name)
     {
-        var profile = await _context.JobseekerProfiles
-            .AsNoTracking()
-            .Include(p => p.Skills)
-            .Include(p => p.Accommodations)
-            .Include(p => p.Schedules)
-            .Include(p => p.Experiences)
-            .FirstOrDefaultAsync();
+        var candidateName = !string.IsNullOrWhiteSpace(headerName)
+            ? Uri.UnescapeDataString(headerName)
+            : name;
 
-        if (profile == null)
-            return NotFound("Profile not found");
-
+        var profile = await _profileService.GetOrCreateProfileAsync(candidateName);
         return Ok(MapToDto(profile));
     }
 
     // PUT: api/jobseeker/profile
     [HttpPut("profile")]
-    public async Task<ActionResult<JobseekerProfileDto>> UpdateProfile([FromBody] UpdateProfileRequest request)
+    public async Task<ActionResult<JobseekerProfileDto>> UpdateProfile(
+        [FromBody] UpdateProfileRequest request,
+        [FromHeader(Name = "X-Candidate-Name")] string? headerName)
     {
-        var profile = await _context.JobseekerProfiles
-            .Include(p => p.Skills)
-            .Include(p => p.Accommodations)
-            .Include(p => p.Schedules)
-            .Include(p => p.Experiences)
-            .FirstOrDefaultAsync();
+        var candidateName = !string.IsNullOrWhiteSpace(request.FullName)
+            ? request.FullName
+            : (!string.IsNullOrWhiteSpace(headerName) ? Uri.UnescapeDataString(headerName) : "Kadri Lepik");
 
-        if (profile == null)
-            return NotFound("Profile not found");
+        var profile = await _profileService.GetOrCreateProfileAsync(candidateName);
 
-        profile.FullName = request.FullName;
-        profile.Phone = request.Phone;
-        profile.City = request.City;
-        profile.MinHourlyPay = request.MinHourlyPay;
-        profile.Summary = request.Summary;
-        profile.Availability = request.Availability;
-        profile.Conditions = request.Conditions;
+        profile.FullName = candidateName;
+        if (!string.IsNullOrWhiteSpace(request.Phone)) profile.Phone = request.Phone;
+        if (!string.IsNullOrWhiteSpace(request.City)) profile.City = request.City;
+        if (request.MinHourlyPay > 0) profile.MinHourlyPay = request.MinHourlyPay;
+        if (request.Summary != null) profile.Summary = request.Summary;
+        if (request.Availability != null) profile.Availability = request.Availability;
+        if (request.Conditions != null) profile.Conditions = request.Conditions;
         profile.UpdatedAt = DateTime.UtcNow;
 
         // Replace skills

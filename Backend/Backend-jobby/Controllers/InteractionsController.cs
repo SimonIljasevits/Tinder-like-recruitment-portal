@@ -1,6 +1,7 @@
 using Backend_jobby.Data;
 using Backend_jobby.DTOs;
 using Backend_jobby.Models;
+using Backend_jobby.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,18 +12,32 @@ namespace Backend_jobby.Controllers;
 public class InteractionsController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly ProfileService _profileService;
 
-    public InteractionsController(AppDbContext context)
+    public InteractionsController(AppDbContext context, ProfileService profileService)
     {
         _context = context;
+        _profileService = profileService;
+    }
+
+    private string ResolveCandidateName(string? headerName, string? queryName)
+    {
+        if (!string.IsNullOrWhiteSpace(headerName))
+            return Uri.UnescapeDataString(headerName);
+        if (!string.IsNullOrWhiteSpace(queryName))
+            return queryName;
+        return "Kadri Lepik";
     }
 
     // POST: api/interactions/pass (Swipe Left)
     [HttpPost("pass")]
-    public async Task<IActionResult> PassJob([FromBody] SwipeRequest request)
+    public async Task<IActionResult> PassJob(
+        [FromBody] SwipeRequest request,
+        [FromHeader(Name = "X-Candidate-Name")] string? headerName,
+        [FromQuery] string? name)
     {
-        var profile = await _context.JobseekerProfiles.FirstOrDefaultAsync();
-        if (profile == null) return NotFound("Profile not found");
+        var candidateName = ResolveCandidateName(headerName, name);
+        var profile = await _profileService.GetOrCreateProfileAsync(candidateName);
 
         var exists = await _context.IgnoredJobs.AnyAsync(ij => ij.JobseekerProfileId == profile.Id && ij.JobId == request.JobId);
         if (!exists)
@@ -40,10 +55,13 @@ public class InteractionsController : ControllerBase
 
     // POST: api/interactions/save (Swipe Up)
     [HttpPost("save")]
-    public async Task<IActionResult> SaveJob([FromBody] SwipeRequest request)
+    public async Task<IActionResult> SaveJob(
+        [FromBody] SwipeRequest request,
+        [FromHeader(Name = "X-Candidate-Name")] string? headerName,
+        [FromQuery] string? name)
     {
-        var profile = await _context.JobseekerProfiles.FirstOrDefaultAsync();
-        if (profile == null) return NotFound("Profile not found");
+        var candidateName = ResolveCandidateName(headerName, name);
+        var profile = await _profileService.GetOrCreateProfileAsync(candidateName);
 
         var exists = await _context.SavedJobs.AnyAsync(sj => sj.JobseekerProfileId == profile.Id && sj.JobId == request.JobId);
         if (!exists)
@@ -61,10 +79,13 @@ public class InteractionsController : ControllerBase
 
     // POST: api/interactions/apply (Swipe Right / Submit Application)
     [HttpPost("apply")]
-    public async Task<IActionResult> ApplyToJob([FromBody] ApplyRequest request)
+    public async Task<IActionResult> ApplyToJob(
+        [FromBody] ApplyRequest request,
+        [FromHeader(Name = "X-Candidate-Name")] string? headerName,
+        [FromQuery] string? name)
     {
-        var profile = await _context.JobseekerProfiles.FirstOrDefaultAsync();
-        if (profile == null) return NotFound("Profile not found");
+        var candidateName = ResolveCandidateName(headerName, name);
+        var profile = await _profileService.GetOrCreateProfileAsync(candidateName);
 
         var job = await _context.Jobs.FindAsync(request.JobId);
         if (job == null) return NotFound("Job not found");
@@ -95,10 +116,12 @@ public class InteractionsController : ControllerBase
 
     // GET: api/interactions/saved
     [HttpGet("saved")]
-    public async Task<IActionResult> GetSavedJobs()
+    public async Task<IActionResult> GetSavedJobs(
+        [FromHeader(Name = "X-Candidate-Name")] string? headerName,
+        [FromQuery] string? name)
     {
-        var profile = await _context.JobseekerProfiles.FirstOrDefaultAsync();
-        if (profile == null) return NotFound("Profile not found");
+        var candidateName = ResolveCandidateName(headerName, name);
+        var profile = await _profileService.GetOrCreateProfileAsync(candidateName);
 
         var saved = await _context.SavedJobs
             .AsNoTracking()
@@ -113,6 +136,7 @@ public class InteractionsController : ControllerBase
                     sj.Job.Id,
                     sj.Job.Title,
                     sj.Job.CompanyName,
+                    sj.Job.CompanyInitials,
                     sj.Job.HourlyPay,
                     sj.Job.Location
                 }
@@ -124,9 +148,12 @@ public class InteractionsController : ControllerBase
 
     // GET: api/interactions/applied
     [HttpGet("applied")]
-    public async Task<IActionResult> GetAppliedJobs()
+    public async Task<IActionResult> GetAppliedJobs(
+        [FromHeader(Name = "X-Candidate-Name")] string? headerName,
+        [FromQuery] string? name)
     {
-        var profile = await _context.JobseekerProfiles.FirstOrDefaultAsync();
+        var candidateName = ResolveCandidateName(headerName, name);
+        var profile = await _profileService.GetOrCreateProfileAsync(candidateName);
         if (profile == null) return NotFound("Profile not found");
 
         var applications = await _context.Applications
@@ -146,6 +173,7 @@ public class InteractionsController : ControllerBase
                     a.Job.Id,
                     a.Job.Title,
                     a.Job.CompanyName,
+                    a.Job.CompanyInitials,
                     a.Job.HourlyPay,
                     a.Job.Location,
                     a.Job.FirstMessage
@@ -156,15 +184,15 @@ public class InteractionsController : ControllerBase
         return Ok(applications);
     }
 
-    // POST: api/interactions/simulate-match/{applicationId}
-    // Simulates employer accepting the application and initiating chat with initial greeting
-    [HttpPost("simulate-match/{applicationId:guid}")]
-    public async Task<IActionResult> SimulateMatch(Guid applicationId)
+    // POST: api/interactions/simulate-match/{id}
+    // Simulates employer accepting the application (by ApplicationId or JobId)
+    [HttpPost("simulate-match/{id:guid}")]
+    public async Task<IActionResult> SimulateMatch(Guid id)
     {
         var application = await _context.Applications
             .Include(a => a.Job)
             .Include(a => a.Conversation)
-            .FirstOrDefaultAsync(a => a.Id == applicationId);
+            .FirstOrDefaultAsync(a => a.Id == id || a.JobId == id);
 
         if (application == null) return NotFound("Application not found");
 

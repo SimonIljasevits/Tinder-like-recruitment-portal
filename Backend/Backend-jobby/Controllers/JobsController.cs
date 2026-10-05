@@ -1,6 +1,7 @@
 using Backend_jobby.Data;
 using Backend_jobby.DTOs;
 using Backend_jobby.Models;
+using Backend_jobby.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,10 +12,12 @@ namespace Backend_jobby.Controllers;
 public class JobsController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly ProfileService _profileService;
 
-    public JobsController(AppDbContext context)
+    public JobsController(AppDbContext context, ProfileService profileService)
     {
         _context = context;
+        _profileService = profileService;
     }
 
     // GET: api/jobs
@@ -55,19 +58,15 @@ public class JobsController : ControllerBase
     // GET: api/jobs/deck
     // Matches the frontend fits(job, profile) logic where a job must satisfy 100% of candidate conditions
     [HttpGet("deck")]
-    public async Task<ActionResult<IEnumerable<JobDto>>> GetDeck()
+    public async Task<ActionResult<IEnumerable<JobDto>>> GetDeck(
+        [FromHeader(Name = "X-Candidate-Name")] string? headerName,
+        [FromQuery] string? name)
     {
-        var profile = await _context.JobseekerProfiles
-            .Include(p => p.Skills)
-            .Include(p => p.Accommodations)
-            .Include(p => p.Schedules)
-            .Include(p => p.IgnoredJobs)
-            .Include(p => p.SavedJobs)
-            .Include(p => p.Applications)
-            .FirstOrDefaultAsync();
+        var candidateName = !string.IsNullOrWhiteSpace(headerName)
+            ? Uri.UnescapeDataString(headerName)
+            : name;
 
-        if (profile == null)
-            return NotFound("No jobseeker profile found.");
+        var profile = await _profileService.GetOrCreateProfileAsync(candidateName);
 
         var candidateSkills = profile.Skills.Select(s => s.SkillCode).ToHashSet();
         var requiredAccommodations = profile.Accommodations.Select(a => a.AccommodationCode).ToList();

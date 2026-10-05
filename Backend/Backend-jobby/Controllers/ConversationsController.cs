@@ -1,6 +1,7 @@
 using Backend_jobby.Data;
 using Backend_jobby.DTOs;
 using Backend_jobby.Models;
+using Backend_jobby.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,18 +12,31 @@ namespace Backend_jobby.Controllers;
 public class ConversationsController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly ProfileService _profileService;
 
-    public ConversationsController(AppDbContext context)
+    public ConversationsController(AppDbContext context, ProfileService profileService)
     {
         _context = context;
+        _profileService = profileService;
+    }
+
+    private string ResolveCandidateName(string? headerName, string? queryName)
+    {
+        if (!string.IsNullOrWhiteSpace(headerName))
+            return Uri.UnescapeDataString(headerName);
+        if (!string.IsNullOrWhiteSpace(queryName))
+            return queryName;
+        return "Kadri Lepik";
     }
 
     // GET: api/conversations
     [HttpGet]
-    public async Task<IActionResult> GetConversations()
+    public async Task<IActionResult> GetConversations(
+        [FromHeader(Name = "X-Candidate-Name")] string? headerName,
+        [FromQuery] string? name)
     {
-        var profile = await _context.JobseekerProfiles.FirstOrDefaultAsync();
-        if (profile == null) return NotFound("Profile not found");
+        var candidateName = ResolveCandidateName(headerName, name);
+        var profile = await _profileService.GetOrCreateProfileAsync(candidateName);
 
         var conversations = await _context.Conversations
             .AsNoTracking()
@@ -56,7 +70,7 @@ public class ConversationsController : ControllerBase
             .Include(c => c.Application.Job)
             .Include(c => c.Messages.OrderBy(m => m.SentAt))
                 .ThenInclude(m => m.SenderUser)
-            .FirstOrDefaultAsync(c => c.Id == id);
+            .FirstOrDefaultAsync(c => c.Id == id || c.Application.JobId == id);
 
         if (conversation == null)
             return NotFound("Conversation not found");
@@ -86,22 +100,26 @@ public class ConversationsController : ControllerBase
 
     // POST: api/conversations/{id}/messages
     [HttpPost("{id:guid}/messages")]
-    public async Task<IActionResult> SendMessage(Guid id, [FromBody] MessageRequest request)
+    public async Task<IActionResult> SendMessage(
+        Guid id,
+        [FromBody] MessageRequest request,
+        [FromHeader(Name = "X-Candidate-Name")] string? headerName,
+        [FromQuery] string? name)
     {
+        var candidateName = ResolveCandidateName(headerName, name);
+        var profile = await _profileService.GetOrCreateProfileAsync(candidateName);
+
         var conversation = await _context.Conversations
             .Include(c => c.Application.JobseekerProfile)
-            .FirstOrDefaultAsync(c => c.Id == id);
+            .FirstOrDefaultAsync(c => c.Id == id || c.Application.JobId == id);
 
         if (conversation == null)
             return NotFound("Conversation not found");
 
-        var jobseeker = await _context.Users.FirstOrDefaultAsync(u => u.Role == "Jobseeker");
-        if (jobseeker == null) return BadRequest("Jobseeker user not found");
-
         var message = new Message
         {
             ConversationId = conversation.Id,
-            SenderUserId = jobseeker.Id,
+            SenderUserId = profile.UserId,
             Content = request.Content,
             IsSystemMessage = false,
             SentAt = DateTime.UtcNow

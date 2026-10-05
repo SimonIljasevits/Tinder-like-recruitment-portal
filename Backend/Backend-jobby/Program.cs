@@ -13,6 +13,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
            .UseSnakeCaseNamingConvention();
 });
 
+// Add ProfileService for multi-candidate session management
+builder.Services.AddScoped<Backend_jobby.Services.ProfileService>();
+
 // Add CORS to allow requests from Frontend (localhost:9090)
 builder.Services.AddCors(options =>
 {

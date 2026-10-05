@@ -657,11 +657,31 @@ function employerMatch(id){
 function openChat(id){
   S.thread = id;
   var job = JOBS.filter(function(j){ return j.id === id; })[0];
-  $("chatTitle").textContent = job.co;
+  $("chatTitle").textContent = job ? job.co : "Vestlus";
   renderMsgs();
   renderQuick();
   $("chat").hidden = false;
   $("msgInput").focus();
+  loadChatMessages(id);
+}
+
+async function loadChatMessages(id){
+  if(!window.Api) return;
+  try {
+    var conv = await Api.getConversation(id);
+    if(conv && Array.isArray(conv.messages) && conv.messages.length > 0){
+      S.threads[id] = conv.messages.map(function(m){
+        return {
+          who: m.isMe ? "me" : "them",
+          text: m.content,
+          time: m.sentAt ? new Date(m.sentAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : nowHM()
+        };
+      });
+      if(S.thread === id) renderMsgs();
+    }
+  } catch(e) {
+    console.warn("Could not fetch messages for chat:", e);
+  }
 }
 function msgText(m){ return m.text !== undefined ? m.text : (S.lang === "et" ? m.et : m.en); }
 function renderMsgs(){
@@ -708,8 +728,8 @@ function send(text){
 /* ------------------------------------------------------------------ */
 function renderProfile(){
   var L = t();
-  $("pTitle").textContent = L.pTitle;
-  $("pNote").textContent = L.pNote;
+  $("pTitle").textContent = (S.cv && S.cv.name) ? S.cv.name : L.pTitle;
+  $("pNote").textContent = (S.cv && S.cv.name) ? (L.pTitle + " · " + L.pNote) : L.pNote;
   $("pStatA").textContent = matching().length;
   $("pStatAL").textContent = L.statA;
   $("pStatB").textContent = S.matched.length;
@@ -811,7 +831,10 @@ function go(tab){
     if(tab === p[1]) $(p[0]).setAttribute("aria-current","page");
     else $(p[0]).removeAttribute("aria-current");
   });
-  if(tab === "matches") renderMatches();
+  if(tab === "matches"){
+    renderMatches();
+    syncInteractionsFromDb();
+  }
   if(tab === "profile") renderProfile();
 }
 
@@ -994,29 +1017,153 @@ function mapBackendJob(bj){
   };
 }
 
+async function syncInteractionsFromDb(){
+  if(!window.Api) return;
+  try {
+    var results = await Promise.all([
+      Api.getApplied(),
+      Api.getSaved(),
+      Api.getConversations()
+    ]);
+    var appliedData = results[0] || [];
+    var savedData = results[1] || [];
+    var convs = results[2] || [];
+
+    // 1. Process Saved Jobs
+    if(Array.isArray(savedData)){
+      savedData.forEach(function(item){
+        var j = item.job;
+        if(!j) return;
+        var jId = j.id;
+        if(S.saved.indexOf(jId) === -1) S.saved.push(jId);
+        if(S.seen.indexOf(jId) === -1) S.seen.push(jId);
+
+        // Tagame, et kuulutus on JOBS nimekirjas olemas
+        if(!JOBS.some(function(existing){ return existing.id === jId; })){
+          JOBS.push(mapBackendJob(j));
+        }
+      });
+    }
+
+    // 2. Process Applied Jobs
+    if(Array.isArray(appliedData)){
+      appliedData.forEach(function(app){
+        var j = app.job;
+        if(!j) return;
+        var jId = j.id;
+        if(S.applied.indexOf(jId) === -1) S.applied.push(jId);
+        if(S.seen.indexOf(jId) === -1) S.seen.push(jId);
+
+        if(!S.sent[jId]){
+          var dateStr = app.appliedAt ? new Date(app.appliedAt).toLocaleDateString() : nowHM();
+          S.sent[jId] = {
+            at: dateStr,
+            tailored: !!app.isTailoredCv,
+            cv: S.cv,
+            file: "CV_" + slug((S.cv && S.cv.name) || "Candidate") + ".pdf"
+          };
+        }
+
+        // Tööandja vastus / match
+        if(app.status === "Accepted" || app.hasConversation){
+          if(S.matched.indexOf(jId) === -1) S.matched.push(jId);
+        }
+
+        if(!JOBS.some(function(existing){ return existing.id === jId; })){
+          JOBS.push(mapBackendJob(j));
+        }
+      });
+    }
+
+    // 3. Process Conversations & Messages
+    if(Array.isArray(convs)){
+      convs.forEach(function(c){
+        var j = c.job;
+        if(!j) return;
+        var jId = j.id;
+        if(S.matched.indexOf(jId) === -1) S.matched.push(jId);
+
+        if(!S.threads[jId] || S.threads[jId].length === 0){
+          if(c.lastMessage){
+            S.threads[jId] = [{
+              who: c.lastMessage.senderRole === "Employer" ? "them" : "me",
+              text: c.lastMessage.content,
+              time: c.lastMessage.sentAt ? new Date(c.lastMessage.sentAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : nowHM()
+            }];
+          } else if(j.firstMessage) {
+            S.threads[jId] = [{
+              who: "them",
+              et: j.firstMessage,
+              en: j.firstMessage,
+              time: nowHM()
+            }];
+          }
+        }
+      });
+    }
+
+    renderBadge();
+    renderStack();
+    if(S.tab === "matches") renderMatches();
+  } catch(err) {
+    console.warn("Error syncing interactions from DB:", err);
+  }
+}
+
 async function initBackendSession(name){
   if(!window.Api) return;
   try {
-    await Api.updateProfile({
-      fullName: name,
-      minHourlyPay: S.profile.pay,
-      skills: S.profile.skills,
-      accommodations: S.profile.access,
-      schedules: S.profile.sched,
-      summary: S.cv && S.cv.et ? S.cv.et.summary : "",
-      availability: S.cv && S.cv.et ? S.cv.et.availability : "",
-      conditions: S.cv && S.cv.et ? S.cv.et.conditions : "",
-      experiences: S.cv && S.cv.et ? (S.cv.et.exp || []).map(function(e){
-        return { roleTitle: e.role, organization: e.org, period: e.period, description: e.text };
-      }) : []
-    });
+    Api.setCandidate(name);
+
+    // 1. Kontrolli või laadi kandidaadi profiil andmebaasist
+    var dbProfile = await Api.getProfile();
+    if(dbProfile){
+      if(dbProfile.fullName) S.cv.name = dbProfile.fullName;
+      if(dbProfile.minHourlyPay) S.profile.pay = dbProfile.minHourlyPay;
+      if(Array.isArray(dbProfile.skills) && dbProfile.skills.length > 0) S.profile.skills = dbProfile.skills;
+      if(Array.isArray(dbProfile.accommodations) && dbProfile.accommodations.length > 0) S.profile.access = dbProfile.accommodations;
+      if(Array.isArray(dbProfile.schedules) && dbProfile.schedules.length > 0) S.profile.sched = dbProfile.schedules;
+      if(dbProfile.city) S.cv.city = dbProfile.city;
+      if(dbProfile.phone) S.cv.phone = dbProfile.phone;
+      if(dbProfile.summary){
+        if(S.cv.et) S.cv.et.summary = dbProfile.summary;
+        if(S.cv.en) S.cv.en.summary = dbProfile.summary;
+      }
+      if(Array.isArray(dbProfile.experiences) && dbProfile.experiences.length > 0){
+        var mappedExp = dbProfile.experiences.map(function(e){
+          return { role: e.roleTitle, org: e.organization, period: e.period, text: e.description };
+        });
+        if(S.cv.et) S.cv.et.exp = mappedExp;
+        if(S.cv.en) S.cv.en.exp = mappedExp;
+      }
+    } else {
+      await Api.updateProfile({
+        fullName: name,
+        minHourlyPay: S.profile.pay,
+        skills: S.profile.skills,
+        accommodations: S.profile.access,
+        schedules: S.profile.sched,
+        summary: S.cv && S.cv.et ? S.cv.et.summary : "",
+        availability: S.cv && S.cv.et ? S.cv.et.availability : "",
+        conditions: S.cv && S.cv.et ? S.cv.et.conditions : "",
+        experiences: S.cv && S.cv.et ? (S.cv.et.exp || []).map(function(e){
+          return { roleTitle: e.role, organization: e.org, period: e.period, description: e.text };
+        }) : []
+      });
+    }
 
     var bJobs = await Api.getAllJobs();
     if(bJobs && bJobs.length > 0){
       JOBS = bJobs.map(mapBackendJob);
-      renderStack();
-      if(deskVisible()) syncDesk();
     }
+
+    // Laadi selle kandidaadi salvestatud ja kandideeritud tööd andmebaasist
+    await syncInteractionsFromDb();
+
+    renderStack();
+    renderBadge();
+    renderProfile();
+    if(deskVisible()) syncDesk();
   } catch(err) {
     console.warn("Backend session sync error:", err);
   }
@@ -1066,6 +1213,7 @@ function start(saved){
       var val = ($("nameInput").value || "").trim();
       if(!val) return;
       if(S.cv) S.cv.name = val;
+      if(window.Api) Api.setCandidate(val);
       $("namepop").hidden = true;
       initBackendSession(val);
     };

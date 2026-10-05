@@ -5,6 +5,24 @@ var API_URL = "http://localhost:5000/api";
 
 var Api = {
   isAvailable: false,
+  candidateName: "",
+
+  setCandidate(name) {
+    this.candidateName = (name || "").trim();
+  },
+
+  getHeaders(extra) {
+    var h = { "Content-Type": "application/json" };
+    if (this.candidateName) {
+      h["X-Candidate-Name"] = encodeURIComponent(this.candidateName);
+    }
+    if (extra) {
+      for (var k in extra) {
+        h[k] = extra[k];
+      }
+    }
+    return h;
+  },
 
   async checkHealth() {
     try {
@@ -19,7 +37,9 @@ var Api = {
 
   async getProfile() {
     try {
-      var res = await fetch(API_URL + "/jobseeker/profile");
+      var res = await fetch(API_URL + "/jobseeker/profile", {
+        headers: this.getHeaders()
+      });
       if (res.ok) return await res.json();
     } catch (e) {
       console.warn("Backend unavailable, using local profile", e);
@@ -31,7 +51,7 @@ var Api = {
     try {
       var res = await fetch(API_URL + "/jobseeker/profile", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: this.getHeaders(),
         body: JSON.stringify(profileData)
       });
       if (res.ok) return await res.json();
@@ -43,7 +63,9 @@ var Api = {
 
   async getDeck() {
     try {
-      var res = await fetch(API_URL + "/jobs/deck");
+      var res = await fetch(API_URL + "/jobs/deck", {
+        headers: this.getHeaders()
+      });
       if (res.ok) {
         var jobs = await res.json();
         return jobs;
@@ -68,7 +90,7 @@ var Api = {
     try {
       await fetch(API_URL + "/interactions/pass", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: this.getHeaders(),
         body: JSON.stringify({ jobId: jobId })
       });
     } catch (e) {
@@ -80,7 +102,7 @@ var Api = {
     try {
       await fetch(API_URL + "/interactions/save", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: this.getHeaders(),
         body: JSON.stringify({ jobId: jobId })
       });
     } catch (e) {
@@ -92,7 +114,7 @@ var Api = {
     try {
       var res = await fetch(API_URL + "/interactions/apply", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: this.getHeaders(),
         body: JSON.stringify({
           jobId: jobId,
           isTailoredCv: !!isTailoredCv,
@@ -108,7 +130,9 @@ var Api = {
 
   async getSaved() {
     try {
-      var res = await fetch(API_URL + "/interactions/saved");
+      var res = await fetch(API_URL + "/interactions/saved", {
+        headers: this.getHeaders()
+      });
       if (res.ok) return await res.json();
     } catch (e) {
       console.warn("Backend getSaved failed", e);
@@ -118,7 +142,9 @@ var Api = {
 
   async getApplied() {
     try {
-      var res = await fetch(API_URL + "/interactions/applied");
+      var res = await fetch(API_URL + "/interactions/applied", {
+        headers: this.getHeaders()
+      });
       if (res.ok) return await res.json();
     } catch (e) {
       console.warn("Backend getApplied failed", e);
@@ -129,7 +155,8 @@ var Api = {
   async simulateMatch(applicationId) {
     try {
       var res = await fetch(API_URL + "/interactions/simulate-match/" + applicationId, {
-        method: "POST"
+        method: "POST",
+        headers: this.getHeaders()
       });
       if (res.ok) return await res.json();
     } catch (e) {
@@ -140,7 +167,9 @@ var Api = {
 
   async getConversations() {
     try {
-      var res = await fetch(API_URL + "/conversations");
+      var res = await fetch(API_URL + "/conversations", {
+        headers: this.getHeaders()
+      });
       if (res.ok) return await res.json();
     } catch (e) {
       console.warn("Backend getConversations failed", e);
@@ -150,7 +179,9 @@ var Api = {
 
   async getConversation(id) {
     try {
-      var res = await fetch(API_URL + "/conversations/" + id);
+      var res = await fetch(API_URL + "/conversations/" + id, {
+        headers: this.getHeaders()
+      });
       if (res.ok) return await res.json();
     } catch (e) {
       console.warn("Backend getConversation failed", e);
@@ -162,7 +193,7 @@ var Api = {
     try {
       var res = await fetch(API_URL + "/conversations/" + convId + "/messages", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: this.getHeaders(),
         body: JSON.stringify({ content: content })
       });
       if (res.ok) return await res.json();
