@@ -121,6 +121,7 @@
       </div>
       <div id="pTags"></div>
       <button type="button" class="bigbtn" id="btnSetup"></button>
+      <a class="bigbtn ghost rolelink" id="toEmployer" href="tooandja/index.html"></a>
       <button type="button" class="bigbtn ghost" id="btnReset"></button>
     </div>
   </section>
@@ -249,6 +250,7 @@
 <script src="js/api.js"></script>
 <script src="js/app.js?v=2"></script>
 </body>
+</html>
 <style>
 /* Layout: üks telefoniekraan — päis, kaardipakk, alumine navigatsioon. Töörõivaste paletis: tume tint + ohutuskollane. */
 :root{
@@ -947,6 +949,13 @@ input[type=range]{width:100%;accent-color:var(--match)}
 .letterbox .lhint,
 .letterbox .lerr{flex:1 1 100%;margin:0;font-size:12px;color:var(--ink-2);line-height:1.4}
 .letterbox .lerr{color:var(--pass)}
+
+/* link tööotsija ja tööandja vaate vahel */
+.rolelink{
+  display:block;text-align:center;text-decoration:none;
+  margin-top:9px;
+}
+
 </style>
 </head>
 <body>
@@ -1048,6 +1057,7 @@ input[type=range]{width:100%;accent-color:var(--match)}
       </div>
       <div id="pTags"></div>
       <button type="button" class="bigbtn" id="btnSetup"></button>
+      <a class="bigbtn ghost rolelink" id="toEmployer" href="tooandja/index.html"></a>
       <button type="button" class="bigbtn ghost" id="btnReset"></button>
     </div>
   </section>
@@ -1214,6 +1224,7 @@ var T = {
     statA:"vastavat tööd", statB:"sobivust", statC:"min. tunnitasu",
     gSkills:"Oskused", gAccess:"Ligipääsetavus ja füüsilised võimed", gSched:"Graafik ja koormus", gPay:"Tasu",
     setup:"Muuda profiili", reset:"Lähtesta prototüüp",
+    toEmployer:"Vaata tööandja poolt →",
     setupTitle:"Profiili seadistus",
     step1H:"Mida sa oskad?", step1P:"Vali kõik tööd, mida oled valmis tegema.",
     step2H:"Mida sa vajad?", step2P:"Näitame ainult töid, kus tööandja on kõik need tingimused kinnitanud.",
@@ -1299,6 +1310,7 @@ var T = {
     statA:"matching jobs", statB:"matches", statC:"min. hourly pay",
     gSkills:"Skills", gAccess:"Accessibility & physical capabilities", gSched:"Schedule & workload", gPay:"Pay",
     setup:"Edit profile", reset:"Reset prototype",
+    toEmployer:"See the employer side →",
     setupTitle:"Profile setup",
     step1H:"What can you do?", step1P:"Pick every kind of work you're willing to take.",
     step2H:"What do you need?", step2P:"We only show jobs where the employer has confirmed all of these.",
@@ -2676,6 +2688,7 @@ function renderProfile(){
   $("pStatC").textContent = num(S.profile.pay) + " €";
   $("pStatCL").textContent = L.statC;
   $("btnSetup").textContent = L.setup;
+  if($("toEmployer")) $("toEmployer").textContent = L.toEmployer;
   $("btnReset").textContent = L.reset;
 
   var groups = [["skills",L.gSkills],["access",L.gAccess],["sched",L.gSched]];
@@ -3217,6 +3230,7 @@ if(window.claude && window.claude.hot && window.claude.hot.ready){
 } else {
   start((window.claude && window.claude.hot && window.claude.hot.data) || null);
 }
+
 
 </script>
 </body>

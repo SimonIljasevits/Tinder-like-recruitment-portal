@@ -1,0 +1,52 @@
+/* ------------------------------------------------------------------
+   Tööandja vaade — ainult erinevused. Põhistiilid tulevad ../css/styles.css.
+   Aktsentvärv on sinine, et esitlusel oleks kohe näha, kumb pool ekraanil on.
+   ------------------------------------------------------------------ */
+:root{
+  --hivis:#2F6FD0;
+  --on-hivis:#FFFFFF;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --hivis:#5B9BF0; --on-hivis:#0B1016 }
+}
+:root[data-theme="dark"]{ --hivis:#5B9BF0; --on-hivis:#0B1016 }
+
+/* tasu/soovi rida kaardil: sinine jääb tumedal fotol liiga tuhmiks */
+.cpay{color:#9CC6FF;font-family:var(--font-body);font-weight:600;font-size:13.5px}
+
+/* kuulutuse valija kandidaatide kohal */
+.postingbar{
+  display:flex;gap:7px;overflow-x:auto;flex:0 0 auto;
+  padding:10px 16px;border-bottom:1px solid var(--line);background:var(--surface);
+}
+.postingbar .tag{white-space:nowrap;padding:7px 12px;font-size:13px}
+
+/* CV all olevad tingimuste sildid */
+.cvchips{margin-top:14px}
+
+/* ettevõtte vaates kuulutuste loend */
+.pgroup .mlist{gap:7px}
+.pgroup .mrow.flat{border:1px solid var(--line);border-radius:var(--r);background:var(--surface-2)}
+.pgroup .status.wait{
+  font-family:var(--font-mono);font-size:12px;min-width:26px;text-align:center;
+}
+
+/* link teise vaatesse */
+#toSeeker{text-decoration:none;color:inherit;display:inline-block}
+
+@media (min-width:900px){
+  .shell.web .postingbar{padding:12px 24px}
+}
+
+/* uue kuulutuse vorm */
+.pohint{
+  margin:-2px 0 10px;font-size:12.5px;color:var(--ink-2);line-height:1.45;max-width:60ch;
+}
+.poerr{
+  margin:0 0 14px;padding:10px 12px;border-radius:9px;font-size:13px;
+  background:color-mix(in srgb,var(--pass) 10%,var(--surface));
+  border:1px solid color-mix(in srgb,var(--pass) 40%,var(--line));
+  color:var(--pass);
+}
+#postedit .taggrid{margin-bottom:18px}
+#postedit .cvsec{margin-top:4px}

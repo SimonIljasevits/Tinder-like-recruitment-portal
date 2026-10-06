@@ -695,3 +695,9 @@ input[type=range]{width:100%;accent-color:var(--match)}
 .letterbox .lhint,
 .letterbox .lerr{flex:1 1 100%;margin:0;font-size:12px;color:var(--ink-2);line-height:1.4}
 .letterbox .lerr{color:var(--pass)}
+
+/* link tööotsija ja tööandja vaate vahel */
+.rolelink{
+  display:block;text-align:center;text-decoration:none;
+  margin-top:9px;
+}

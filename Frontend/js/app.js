@@ -1014,6 +1014,7 @@ function renderProfile(){
   $("pStatC").textContent = num(S.profile.pay) + " €";
   $("pStatCL").textContent = L.statC;
   $("btnSetup").textContent = L.setup;
+  if($("toEmployer")) $("toEmployer").textContent = L.toEmployer;
   $("btnReset").textContent = L.reset;
 
   var groups = [["skills",L.gSkills],["access",L.gAccess],["sched",L.gSched]];
