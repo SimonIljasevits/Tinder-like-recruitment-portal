@@ -391,15 +391,29 @@
 
   <div class="panel">
     <div class="tabs">
-      <button type="button" class="tab-btn active" onclick="setTab('search')">1. Automaatne CVKeskus Otsing</button>
+      <button type="button" class="tab-btn active" onclick="setTab('search')">1. Automaatne Otsing (CVKeskus & Töötukassa)</button>
       <button type="button" class="tab-btn" onclick="setTab('url')">2. Konkreetne Kuulutuse URL</button>
       <button type="button" class="tab-btn" onclick="setTab('text')">3. Kleebi Kuulutuse Tekst</button>
     </div>
 
-    <!-- TAB 1: SEARCH CVKESKUS -->
+    <!-- TAB 1: SEARCH PORTALS -->
     <div id="tabSearch">
       <div class="form-group">
-        <label>Otsingusõna CVKeskusest</label>
+        <label>Vali Portaal</label>
+        <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;background:var(--bg);padding:8px 14px;border-radius:8px;border:1px solid var(--border);">
+            <input type="radio" name="searchPortal" value="cvkeskus" checked onchange="updatePortalUI()">
+            <span style="font-weight:600;">🌐 CVKeskus</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;background:var(--bg);padding:8px 14px;border-radius:8px;border:1px solid var(--border);">
+            <input type="radio" name="searchPortal" value="tootukassa" onchange="updatePortalUI()">
+            <span style="font-weight:600;">🇪🇪 Töötukassa</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label id="searchKeywordLabel">Otsingusõna</label>
         <div class="input-row">
           <input type="text" id="searchKeyword" class="input-search" placeholder="Nt koristaja, puhastus, laotöötaja..." value="koristaja">
           <select id="searchLimit" class="select-limit">
@@ -413,9 +427,9 @@
           <span style="font-size:12px;color:var(--text-muted);align-self:center;">Kiirvalikud:</span>
           <button type="button" class="pill-btn" onclick="setKeyword('koristaja')">koristaja</button>
           <button type="button" class="pill-btn" onclick="setKeyword('puhastusteenindaja')">puhastusteenindaja</button>
-          <button type="button" class="pill-btn" onclick="setKeyword('nõudepesija')">nõudepesija</button>
-          <button type="button" class="pill-btn" onclick="setKeyword('laotöötaja')">laotöötaja</button>
           <button type="button" class="pill-btn" onclick="setKeyword('klienditeenindaja')">klienditeenindaja</button>
+          <button type="button" class="pill-btn" onclick="setKeyword('laotöötaja')">laotöötaja</button>
+          <button type="button" class="pill-btn" onclick="setKeyword('nõudepesija')">nõudepesija</button>
         </div>
       </div>
       <button type="button" class="btn-submit" id="btnCrawl" onclick="runCrawlSearch()">
@@ -426,8 +440,8 @@
     <!-- TAB 2: SINGLE URL -->
     <div id="tabUrl" style="display:none;">
       <div class="form-group">
-        <label>Kuulutuse Veebiaadress (CVKeskus, CV.ee jms)</label>
-        <input type="text" id="targetUrl" placeholder="https://www.cvkeskus.ee/klienditeenindaja-tallinnas-...">
+        <label>Kuulutuse Veebiaadress (Töötukassa, CVKeskus, CV.ee jms)</label>
+        <input type="text" id="targetUrl" placeholder="https://www.tootukassa.ee/et/toopakkumised/... või https://www.cvkeskus.ee/...">
       </div>
       <button type="button" class="btn-submit" id="btnUrl" onclick="runCrawlUrl()">
         <span>Laadi Leht ja Struktureeri AI-ga</span>
@@ -499,22 +513,42 @@ function log(type, msg) {
   c.scrollTop = c.scrollHeight;
 }
 
+function getSelectedPortal() {
+  var el = document.querySelector('input[name="searchPortal"]:checked');
+  return el ? el.value : "cvkeskus";
+}
+
+function updatePortalUI() {
+  var portal = getSelectedPortal();
+  var btnText = document.getElementById("btnCrawlText");
+  var label = document.getElementById("searchKeywordLabel");
+  if (portal === "tootukassa") {
+    btnText.textContent = "Otsi Töötukassast ja Struktureeri AI-ga";
+    if (label) label.textContent = "Otsingusõna Töötukassast";
+  } else {
+    btnText.textContent = "Otsi CVKeskusest ja Struktureeri AI-ga";
+    if (label) label.textContent = "Otsingusõna CVKeskusest";
+  }
+}
+
 async function runCrawlSearch() {
   var kw = document.getElementById("searchKeyword").value.trim();
   var limit = parseInt(document.getElementById("searchLimit").value, 10) || 3;
+  var portal = getSelectedPortal();
+  var portalName = portal === "tootukassa" ? "Töötukassa" : "CVKeskus";
   var btn = document.getElementById("btnCrawl");
   var btnText = document.getElementById("btnCrawlText");
 
   btn.disabled = true;
-  btnText.innerHTML = '<div class="spinner"></div> Otsin CVKeskusest ja küsin Gemini AI-lt...';
+  btnText.innerHTML = '<div class="spinner"></div> Otsin ' + portalName + 'st ja küsin Gemini AI-lt...';
 
-  log("info", "Alustan CVKeskuse otsingut märksõnaga '" + kw + "' (limiit " + limit + ")...");
+  log("info", "Alustan " + portalName + " otsingut märksõnaga '" + kw + "' (limiit " + limit + ")...");
 
   try {
     var res = await fetch(API_URL + "/crawler/search", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ keyword: kw, limit: limit })
+      body: JSON.stringify({ keyword: kw, limit: limit, portal: portal })
     });
     var data = await safeReadResponse(res);
     if (res.ok && data.success) {
@@ -532,7 +566,7 @@ async function runCrawlSearch() {
     log("error", "Ühenduse viga backendiga: " + e.message);
   } finally {
     btn.disabled = false;
-    btnText.textContent = "Otsi CVKeskusest ja Struktureeri AI-ga";
+    updatePortalUI();
   }
 }
 
@@ -600,14 +634,23 @@ async function loadRecentJobs() {
     var grid = document.getElementById("resultsGrid");
     grid.innerHTML = "";
 
-    // Show last 6 jobs (reversed)
+    // Show last 9 jobs (reversed)
     jobs.slice().reverse().slice(0, 9).forEach(function(j) {
       var card = document.createElement("div");
       card.className = "job-card";
+      var sourceTag = "";
+      if (j.source === "tootukassa") {
+        sourceTag = '<span style="display:inline-block;padding:2px 7px;border-radius:5px;font-size:11px;font-weight:700;background:rgba(2,132,199,0.22);color:#38BDF8;border:1px solid rgba(2,132,199,0.45);margin-left:6px;">🇪🇪 Töötukassa</span>';
+      } else if (j.source === "cvkeskus" || j.isExternal) {
+        sourceTag = '<span style="display:inline-block;padding:2px 7px;border-radius:5px;font-size:11px;font-weight:700;background:rgba(245,158,11,0.22);color:#FBBF24;border:1px solid rgba(245,158,11,0.45);margin-left:6px;">🌐 CV Keskus</span>';
+      } else {
+        sourceTag = '<span style="display:inline-block;padding:2px 7px;border-radius:5px;font-size:11px;font-weight:700;background:rgba(16,185,129,0.22);color:#34D399;border:1px solid rgba(16,185,129,0.4);margin-left:6px;">⚡ Otsetöö</span>';
+      }
+
       card.innerHTML =
         '<div class="job-top">' +
           '<div>' +
-            '<span class="job-co">' + escapeHTML(j.companyName) + ' · ' + escapeHTML(j.location || "Tallinn") + '</span>' +
+            '<span class="job-co">' + escapeHTML(j.companyName) + ' · ' + escapeHTML(j.location || "Tallinn") + sourceTag + '</span>' +
             '<h3 class="job-title">' + escapeHTML(j.title) + '</h3>' +
           '</div>' +
           '<span class="job-pay">' + Number(j.hourlyPay).toFixed(2) + ' €/h</span>' +

@@ -3,6 +3,7 @@ using System;
 using Backend_jobby.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend_jobby.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261006084147_AddSourceToJob")]
+    partial class AddSourceToJob
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -203,10 +206,6 @@ namespace Backend_jobby.Migrations
                     b.Property<Guid?>("EmployerProfileId")
                         .HasColumnType("uuid")
                         .HasColumnName("employer_profile_id");
-
-                    b.Property<string>("ExternalUrl")
-                        .HasColumnType("text")
-                        .HasColumnName("external_url");
 
                     b.Property<string>("FirstMessage")
                         .HasColumnType("text")

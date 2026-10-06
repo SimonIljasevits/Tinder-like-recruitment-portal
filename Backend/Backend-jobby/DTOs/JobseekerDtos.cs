@@ -14,6 +14,9 @@ public class JobDto
     public string? StartDateText { get; set; }
     public string Description { get; set; } = string.Empty;
     public string? FirstMessage { get; set; }
+    public bool IsExternal { get; set; }
+    public string Source { get; set; } = "internal";
+    public string? ExternalUrl { get; set; }
 
     public List<string> Shifts { get; set; } = new();
     public List<string> Accommodations { get; set; } = new();

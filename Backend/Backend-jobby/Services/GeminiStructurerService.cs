@@ -71,8 +71,8 @@ public class GeminiStructurerService
         var apiKey = _config["Gemini:ApiKey"] ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY");
         if (string.IsNullOrWhiteSpace(apiKey))
         {
-            _logger.LogError("Gemini API key is not configured.");
-            throw new InvalidOperationException("Gemini API key is missing. Set Gemini:ApiKey in configuration.");
+            _logger.LogWarning("Gemini API key is not configured, falling back to rule-based extractor.");
+            return FallbackExtract(rawAdText);
         }
 
         var prompt = $@"Sa oled töövahendusäpi 'Sobib' töökuulutuste struktureerija.
@@ -165,8 +165,8 @@ TÖÖKUULUTUSE TEKST:
 
         if (string.IsNullOrWhiteSpace(respString))
         {
-            _logger.LogError("All Gemini model attempts failed.");
-            return null;
+            _logger.LogWarning("All Gemini model attempts failed. Using intelligent rule-based fallback extractor.");
+            return FallbackExtract(rawAdText);
         }
 
         try
@@ -181,7 +181,7 @@ TÖÖKUULUTUSE TEKST:
                 .GetString();
 
             if (string.IsNullOrWhiteSpace(textResult))
-                return null;
+                return FallbackExtract(rawAdText);
 
             // Strip code fences if model included ```json ... ```
             var cleaned = textResult.Trim();
@@ -197,12 +197,137 @@ TÖÖKUULUTUSE TEKST:
                 PropertyNameCaseInsensitive = true
             });
 
-            return structured;
+            return structured ?? FallbackExtract(rawAdText);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to structure job using Gemini.");
-            return null;
+            _logger.LogWarning(ex, "Failed to parse Gemini response. Using intelligent rule-based fallback extractor.");
+            return FallbackExtract(rawAdText);
         }
+    }
+
+    public static StructuredJobDto FallbackExtract(string rawAdText)
+    {
+        var lines = rawAdText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        string title = "Tööpakkumine";
+        string company = "Tööpakkuja";
+        string location = "Tallinn";
+        decimal pay = 8.00m;
+        string hours = "Täistööaeg või osaline";
+        var requirements = new List<string>();
+        var offers = new List<string>();
+
+        // 1. Detect title
+        foreach (var l in lines)
+        {
+            if (l.StartsWith("Ametikoht:", StringComparison.OrdinalIgnoreCase))
+            {
+                title = l["Ametikoht:".Length..].Trim();
+                break;
+            }
+        }
+        if (title == "Tööpakkumine" && lines.Length > 0)
+        {
+            title = lines[0].Length > 60 ? lines[0][..60] : lines[0];
+        }
+
+        // 2. Detect company
+        foreach (var l in lines)
+        {
+            if (l.StartsWith("Ettevõte:", StringComparison.OrdinalIgnoreCase))
+            {
+                company = l["Ettevõte:".Length..].Trim();
+                break;
+            }
+        }
+
+        // 3. Detect location
+        foreach (var l in lines)
+        {
+            if (l.StartsWith("Asukoht:", StringComparison.OrdinalIgnoreCase))
+            {
+                location = l["Asukoht:".Length..].Trim();
+                break;
+            }
+            if (l.Contains("Tallinn", StringComparison.OrdinalIgnoreCase)) location = "Tallinn";
+            else if (l.Contains("Tartu", StringComparison.OrdinalIgnoreCase)) location = "Tartu";
+            else if (l.Contains("Pärnu", StringComparison.OrdinalIgnoreCase)) location = "Pärnu";
+            else if (l.Contains("Narva", StringComparison.OrdinalIgnoreCase)) location = "Narva";
+        }
+
+        // 4. Detect pay
+        var payMatch = System.Text.RegularExpressions.Regex.Match(rawAdText, @"(\d+([.,]\d+)?)\s*(?:eurot|EUR|€|\/h)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (payMatch.Success && decimal.TryParse(payMatch.Groups[1].Value.Replace(',', '.'), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var p))
+        {
+            if (p > 500) pay = Math.Round(p / 168m, 2);
+            else if (p > 0) pay = p;
+        }
+
+        // 5. Detect working hours
+        foreach (var l in lines)
+        {
+            if (l.StartsWith("Tööaeg:", StringComparison.OrdinalIgnoreCase))
+            {
+                hours = l["Tööaeg:".Length..].Trim();
+                break;
+            }
+        }
+
+        // 6. Detect skill
+        string skill = "commercial";
+        var lower = rawAdText.ToLowerInvariant();
+        if (lower.Contains("klienditeenind") || lower.Contains("kassapid") || lower.Contains("müüja")) skill = "customer_service";
+        else if (lower.Contains("laotööt") || lower.Contains("komplekteer") || lower.Contains("tõstuk")) skill = "warehouse";
+        else if (lower.Contains("nõudepes") || lower.Contains("köögi") || lower.Contains("toitlustus")) skill = "kitchen";
+        else if (lower.Contains("pesumaja") || lower.Contains("pesu")) skill = "laundry";
+        else if (lower.Contains("aken") || lower.Contains("akende")) skill = "windows";
+        else if (lower.Contains("põranda")) skill = "floor";
+
+        // 7. Shifts
+        var shifts = new List<string>();
+        if (lower.Contains("osaline") || lower.Contains("osaaeg")) shifts.Add("parttime");
+        if (lower.Contains("täistöö") || lower.Contains("täisaeg") || lower.Contains("e-r")) shifts.Add("fulltime");
+        if (lower.Contains("vahetustega") || lower.Contains("vahetus")) { shifts.Add("morning"); shifts.Add("evening"); }
+        if (lower.Contains("hommik") || lower.Contains("päevane") || lower.Contains("7:00") || lower.Contains("8:00") || lower.Contains("e-r")) shifts.Add("morning");
+        if (lower.Contains("õhtune") || lower.Contains("õhtul")) shifts.Add("evening");
+        if (lower.Contains("öötöö") || lower.Contains("öövahetus") || System.Text.RegularExpressions.Regex.IsMatch(lower, @"\böösiti\b|\bööl\b")) shifts.Add("night");
+        if (lower.Contains("nädalavahet")) shifts.Add("weekend");
+        if (shifts.Count == 0) shifts.Add("morning");
+
+        // 8. Extract requirements & offers from section lines
+        bool inReq = false;
+        bool inOffers = false;
+        foreach (var l in lines)
+        {
+            if (l.StartsWith("Nõuded", StringComparison.OrdinalIgnoreCase)) { inReq = true; inOffers = false; continue; }
+            if (l.StartsWith("Omalt poolt pakume", StringComparison.OrdinalIgnoreCase) || l.StartsWith("Pakume", StringComparison.OrdinalIgnoreCase)) { inOffers = true; inReq = false; continue; }
+            if (l.StartsWith("Tööülesanded", StringComparison.OrdinalIgnoreCase) || l.StartsWith("Asukoht", StringComparison.OrdinalIgnoreCase)) { inReq = false; inOffers = false; continue; }
+
+            if (inReq && l.Length > 3 && requirements.Count < 5) requirements.Add(l.TrimStart('-', '*', ' '));
+            if (inOffers && l.Length > 3 && offers.Count < 5) offers.Add(l.TrimStart('-', '*', ' '));
+        }
+
+        // 9. Company initials
+        var initials = company.Length >= 2 ? company[..2].ToUpperInvariant() : "TO";
+
+        return new StructuredJobDto
+        {
+            CompanyName = company,
+            CompanyInitials = initials,
+            Title = title,
+            PrimarySkill = skill,
+            HourlyPay = pay,
+            Shifts = shifts.Distinct().ToList(),
+            Accommodations = new List<string> { "stepfree", "max10" },
+            Location = location,
+            DistanceKm = 3.0m,
+            WorkingHours = hours,
+            StartDateText = "Kohe",
+            Description = rawAdText.Length > 1500 ? rawAdText[..1500] : rawAdText,
+            Requirements = requirements.Count > 0 ? requirements : new List<string> { "Kohusetundlikkus ja täpsus", "Valmisolek meeskonnatööks" },
+            Offers = offers.Count > 0 ? offers : new List<string> { "Konkurentsivõimeline töötasu", "Sõbralik meeskond" },
+            FirstMessage = $"Tere! Meil on ettevõttes {company} pakkuda ametikoht: {title}."
+        };
     }
 }

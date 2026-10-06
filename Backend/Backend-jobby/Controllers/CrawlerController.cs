@@ -8,6 +8,7 @@ public class CrawlSearchRequest
 {
     public string Keyword { get; set; } = "koristaja";
     public int Limit { get; set; } = 3;
+    public string Portal { get; set; } = "cvkeskus"; // "cvkeskus" or "tootukassa"
 }
 
 public class CrawlUrlRequest
@@ -39,19 +40,33 @@ public class CrawlerController : ControllerBase
     {
         try
         {
-            var jobs = await _crawlerService.SearchAndCrawlAsync(request.Keyword, request.Limit);
+            List<JobDto> jobs;
+            string portalName;
+
+            if (string.Equals(request.Portal, "tootukassa", StringComparison.OrdinalIgnoreCase))
+            {
+                jobs = await _crawlerService.SearchTootukassaAsync(request.Keyword, request.Limit);
+                portalName = "Töötukassa";
+            }
+            else
+            {
+                jobs = await _crawlerService.SearchAndCrawlAsync(request.Keyword, request.Limit);
+                portalName = "CVKeskus";
+            }
+
             return Ok(new
             {
                 success = true,
-                message = $"Successfully crawled and ingested {jobs.Count} jobs from CVKeskus.",
+                message = $"Successfully crawled and ingested {jobs.Count} jobs from {portalName}.",
                 keyword = request.Keyword,
+                portal = request.Portal,
                 count = jobs.Count,
                 jobs = jobs
             });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to crawl CVKeskus for keyword: {Keyword}", request.Keyword);
+            _logger.LogError(ex, "Failed to crawl {Portal} for keyword: {Keyword}", request.Portal, request.Keyword);
             return StatusCode(500, new { success = false, message = ex.Message });
         }
     }

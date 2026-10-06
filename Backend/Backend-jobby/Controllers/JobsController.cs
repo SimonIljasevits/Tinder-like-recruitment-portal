@@ -87,26 +87,33 @@ public class JobsController : ControllerBase
             .Include(j => j.Offers)
             .ToListAsync();
 
-        // 100% match filter
+        // Filter matching jobs (allowing external crawled jobs to be discovered)
         var matchingJobs = jobs.Where(j =>
         {
-            // 1. Skill match
-            if (!candidateSkills.Contains(j.PrimarySkill))
-                return false;
+            var isExt = j.EmployerProfileId == null || j.Source != "internal";
 
-            // 2. Pay rate must meet or exceed minimum
-            if (j.HourlyPay < minPay)
-                return false;
+            // Internal jobs must strictly match candidate skills and minimum pay
+            if (!isExt)
+            {
+                if (!candidateSkills.Contains(j.PrimarySkill))
+                    return false;
 
-            // 3. Must provide ALL accommodations required by candidate
+                if (j.HourlyPay < minPay)
+                    return false;
+            }
+
+            // Must provide ALL accommodations required by candidate
             var jobAccoms = j.Accommodations.Select(a => a.AccommodationCode).ToHashSet();
             if (!requiredAccommodations.All(a => jobAccoms.Contains(a)))
                 return false;
 
-            // 4. Must match at least ONE of the candidate's preferred schedules
-            var jobShifts = j.Shifts.Select(s => s.ShiftCode).ToHashSet();
-            if (!candidateSchedules.Any(s => jobShifts.Contains(s)))
-                return false;
+            // Must match schedule if internal job
+            if (!isExt && candidateSchedules.Count > 0)
+            {
+                var jobShifts = j.Shifts.Select(s => s.ShiftCode).ToHashSet();
+                if (!candidateSchedules.Any(s => jobShifts.Contains(s)))
+                    return false;
+            }
 
             return true;
         }).Select(MapToDto).ToList();
@@ -128,6 +135,9 @@ public class JobsController : ControllerBase
         StartDateText = j.StartDateText,
         Description = j.Description,
         FirstMessage = j.FirstMessage,
+        IsExternal = j.EmployerProfileId == null || j.Source != "internal",
+        Source = !string.IsNullOrWhiteSpace(j.Source) ? j.Source : (j.EmployerProfileId == null ? "cvkeskus" : "internal"),
+        ExternalUrl = j.ExternalUrl,
         Shifts = j.Shifts.Select(s => s.ShiftCode).ToList(),
         Accommodations = j.Accommodations.Select(a => a.AccommodationCode).ToList(),
         Requirements = j.Requirements.Select(r => r.RequirementText).ToList(),

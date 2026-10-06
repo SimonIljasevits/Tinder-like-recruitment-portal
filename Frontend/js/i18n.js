@@ -164,6 +164,7 @@ var TAGS = {
   "kitchen":{g:"skills",et:"Köögi puhastus",en:"Kitchen cleaning"},
   "laundry":{g:"skills",et:"Pesumaja",en:"Laundry"},
   "warehouse":{g:"skills",et:"Laoabi",en:"Warehouse help"},
+  "customer_service":{g:"skills",et:"Klienditeenindus / Üldtöö",en:"Customer service / General"},
 
   "max10":{g:"access",et:"Max 10 kg tõstmine",en:"Max 10kg lifting"},
   "stepfree":{g:"access",et:"Astmeteta ligipääs",en:"Step-free access"},

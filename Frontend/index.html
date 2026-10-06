@@ -20,7 +20,7 @@
   img{max-width:100%}
   [hidden]{display:none!important}
 </style>
-<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/styles.css?v=2">
 </head>
 <body>
 <div class="shell web" id="shell">
@@ -52,7 +52,10 @@
     <div class="filterbar">
       <span class="count" id="fCount"></span>
       <span class="why" id="fWhy"></span>
-      <button type="button" class="linkbtn" id="btnFilters"></button>
+      <div style="display:inline-flex;gap:8px;align-items:center;">
+        <button type="button" class="linkbtn" id="btnRefreshJobs" title="Värskenda andmebaasist" style="cursor:pointer;">🔄 Värskenda</button>
+        <button type="button" class="linkbtn" id="btnFilters"></button>
+      </div>
     </div>
     <div class="jobsrow">
     <div class="cardcol">
@@ -241,6 +244,6 @@
 <script src="js/i18n.js"></script>
 <script src="js/data.js"></script>
 <script src="js/api.js"></script>
-<script src="js/app.js"></script>
+<script src="js/app.js?v=2"></script>
 </body>
 </html>

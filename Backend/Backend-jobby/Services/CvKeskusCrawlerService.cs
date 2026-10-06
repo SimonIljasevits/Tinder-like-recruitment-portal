@@ -100,6 +100,11 @@ public class CvKeskusCrawlerService
 
     public async Task<JobDto?> CrawlAndImportUrlAsync(string url)
     {
+        if (url.Contains("tootukassa.ee", StringComparison.OrdinalIgnoreCase))
+        {
+            return await CrawlTootukassaUrlAsync(url);
+        }
+
         _logger.LogInformation("Fetching job detail from {Url}", url);
         var html = await _httpClient.GetStringAsync(url);
         var rawText = ExtractJobText(html, url);
@@ -110,7 +115,264 @@ public class CvKeskusCrawlerService
             return null;
         }
 
-        return await ParseTextAndSaveJobAsync(rawText);
+        var source = url.Contains("cv.ee", StringComparison.OrdinalIgnoreCase) ? "cvee" : "cvkeskus";
+        return await ParseTextAndSaveJobAsync(rawText, source: source, externalUrl: url);
+    }
+
+    public async Task<JobDto?> CrawlTootukassaUrlAsync(string url)
+    {
+        _logger.LogInformation("Importing Töötukassa job from {Url}", url);
+
+        // Extract numeric ID from URL (e.g. "klienditeenindaja-839999" -> 839999)
+        var idMatch = Regex.Match(url, @"-(\d+)(?:\D|$)");
+        if (!idMatch.Success)
+        {
+            idMatch = Regex.Match(url, @"\b(\d{5,8})\b");
+        }
+
+        if (!idMatch.Success || !int.TryParse(idMatch.Groups[1].Value, out var jobId))
+        {
+            _logger.LogWarning("Could not extract Töötukassa job offer ID from {Url}", url);
+            return null;
+        }
+
+        var rawText = await FetchTootukassaJobTextAsync(jobId);
+        if (string.IsNullOrWhiteSpace(rawText))
+        {
+            _logger.LogWarning("Töötukassa returned empty details for job {Id}", jobId);
+            return null;
+        }
+
+        return await ParseTextAndSaveJobAsync(rawText, source: "tootukassa", externalUrl: url);
+    }
+
+    public async Task<List<JobDto>> SearchTootukassaAsync(string keyword, int limit = 3)
+    {
+        keyword = string.IsNullOrWhiteSpace(keyword) ? "klienditeenindaja" : keyword.Trim();
+        limit = Math.Clamp(limit, 1, 10);
+
+        _logger.LogInformation("Searching Töötukassa for keyword: {Keyword}, limit: {Limit}", keyword, limit);
+
+        var query = @"
+            query jobOfferSearch($first: Int, $searchInput: InputToopakkumineAvalikOtsingDTO) {
+              jobOffersQuery(first: $first, searchInput: $searchInput) {
+                edges {
+                  id
+                  nimetus
+                  alias
+                  asutusNimi
+                  brandNimi
+                  aadressid
+                  onTaiskohaga
+                  onOsakohaga
+                }
+                pageInfo {
+                  totalCount
+                }
+              }
+            }";
+
+        var requestBody = new
+        {
+            query,
+            variables = new
+            {
+                first = limit,
+                searchInput = new { otsisona = keyword }
+            }
+        };
+
+        var content = new StringContent(
+            System.Text.Json.JsonSerializer.Serialize(requestBody),
+            System.Text.Encoding.UTF8,
+            "application/json");
+
+        var response = await _httpClient.PostAsync("https://www.tootukassa.ee/web/graphql", content);
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("Töötukassa GraphQL search request failed: {Status}", response.StatusCode);
+            return new List<JobDto>();
+        }
+
+        var jsonString = await response.Content.ReadAsStringAsync();
+        using var doc = System.Text.Json.JsonDocument.Parse(jsonString);
+
+        if (!doc.RootElement.TryGetProperty("data", out var data) ||
+            !data.TryGetProperty("jobOffersQuery", out var jobOffers) ||
+            !jobOffers.TryGetProperty("edges", out var edges) ||
+            edges.ValueKind != System.Text.Json.JsonValueKind.Array)
+        {
+            return new List<JobDto>();
+        }
+
+        var importedJobs = new List<JobDto>();
+
+        foreach (var edge in edges.EnumerateArray())
+        {
+            if (importedJobs.Count >= limit) break;
+            if (!edge.TryGetProperty("id", out var idProp) || !idProp.TryGetInt32(out var jobId)) continue;
+
+            string? alias = edge.TryGetProperty("alias", out var aProp) ? aProp.GetString() : null;
+            var tkUrl = !string.IsNullOrWhiteSpace(alias)
+                ? $"https://www.tootukassa.ee/et/toopakkumised/{alias}-{jobId}"
+                : $"https://www.tootukassa.ee/et/toopakkumised/{jobId}";
+
+            try
+            {
+                var rawText = await FetchTootukassaJobTextAsync(jobId);
+                if (!string.IsNullOrWhiteSpace(rawText))
+                {
+                    var jobDto = await ParseTextAndSaveJobAsync(rawText, source: "tootukassa", externalUrl: tkUrl);
+                    if (jobDto != null)
+                    {
+                        importedJobs.Add(jobDto);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to crawl individual Töötukassa job ad {Id}", jobId);
+            }
+        }
+
+        return importedJobs;
+    }
+
+    private async Task<string?> FetchTootukassaJobTextAsync(int jobId)
+    {
+        var query = @"
+            query jobofferquery($id: Int!) {
+              publicJobOfferQuery(jobOfferId: $id) {
+                id
+                nimetus
+                ametinimetusTapsustus
+                toopakkujaBrand {
+                  nimi
+                }
+                toopakkuja {
+                  nimi
+                  registrikood
+                  tutvustus
+                }
+                tookohaAndmed {
+                  tooylesanded
+                  omaltPooltPakume
+                  onOsakohaga
+                  onTaiskohaga
+                  onVahetustega
+                  onOositi
+                  tooaegTapsustus
+                  tootasuAlates
+                  tootasuKuni
+                  onPalkAvalik
+                  tootasuTapsustus
+                }
+                noudedKandidaadile {
+                  varasemTookogemus
+                  haridusTase
+                  arvutiOskusTase
+                  nouded
+                  lisainfoKandideerijale
+                  keeleoskused {
+                    onNoutud
+                    keel
+                    taseKirjas
+                    taseKones
+                  }
+                }
+                aadressid {
+                  aadressTekst
+                  aadressTapsustus
+                }
+              }
+            }";
+
+        var requestBody = new
+        {
+            query,
+            variables = new { id = jobId }
+        };
+
+        var content = new StringContent(
+            System.Text.Json.JsonSerializer.Serialize(requestBody),
+            System.Text.Encoding.UTF8,
+            "application/json");
+
+        var response = await _httpClient.PostAsync("https://www.tootukassa.ee/web/graphql", content);
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("Töötukassa GraphQL request failed: {Status}", response.StatusCode);
+            return null;
+        }
+
+        var jsonString = await response.Content.ReadAsStringAsync();
+        using var doc = System.Text.Json.JsonDocument.Parse(jsonString);
+
+        if (!doc.RootElement.TryGetProperty("data", out var data) ||
+            !data.TryGetProperty("publicJobOfferQuery", out var offer) ||
+            offer.ValueKind != System.Text.Json.JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var sb = new System.Text.StringBuilder();
+
+        var title = offer.TryGetProperty("nimetus", out var n) ? n.GetString() : "";
+        var titleDetail = offer.TryGetProperty("ametinimetusTapsustus", out var at) ? at.GetString() : "";
+        sb.AppendLine($"Ametikoht: {title} {titleDetail}".Trim());
+
+        string? company = null;
+        if (offer.TryGetProperty("toopakkujaBrand", out var brand) && brand.ValueKind == System.Text.Json.JsonValueKind.Object && brand.TryGetProperty("nimi", out var bn))
+        {
+            company = bn.GetString();
+        }
+        if (string.IsNullOrWhiteSpace(company) && offer.TryGetProperty("toopakkuja", out var tp) && tp.ValueKind == System.Text.Json.JsonValueKind.Object && tp.TryGetProperty("nimi", out var tpn))
+        {
+            company = tpn.GetString();
+        }
+        if (!string.IsNullOrWhiteSpace(company))
+        {
+            sb.AppendLine($"Ettevõte: {company}");
+        }
+
+        if (offer.TryGetProperty("tookohaAndmed", out var tk) && tk.ValueKind == System.Text.Json.JsonValueKind.Object)
+        {
+            if (tk.TryGetProperty("tootasuTapsustus", out var tt) && !string.IsNullOrWhiteSpace(tt.GetString()))
+                sb.AppendLine($"Töötasu: {tt.GetString()}");
+            else if (tk.TryGetProperty("tootasuAlates", out var ta) && ta.ValueKind == System.Text.Json.JsonValueKind.Number)
+                sb.AppendLine($"Töötasu: {ta.GetDecimal()} EUR");
+
+            if (tk.TryGetProperty("tooaegTapsustus", out var tat) && !string.IsNullOrWhiteSpace(tat.GetString()))
+                sb.AppendLine($"Tööaeg: {tat.GetString()}");
+
+            if (tk.TryGetProperty("tooylesanded", out var ty) && !string.IsNullOrWhiteSpace(ty.GetString()))
+                sb.AppendLine($"Tööülesanded:\n{ty.GetString()}");
+
+            if (tk.TryGetProperty("omaltPooltPakume", out var opp) && !string.IsNullOrWhiteSpace(opp.GetString()))
+                sb.AppendLine($"Omalt poolt pakume:\n{opp.GetString()}");
+        }
+
+        if (offer.TryGetProperty("noudedKandidaadile", out var nk) && nk.ValueKind == System.Text.Json.JsonValueKind.Object)
+        {
+            if (nk.TryGetProperty("nouded", out var req) && !string.IsNullOrWhiteSpace(req.GetString()))
+                sb.AppendLine($"Nõuded kandidaadile:\n{req.GetString()}");
+        }
+
+        if (offer.TryGetProperty("aadressid", out var adrs) && adrs.ValueKind == System.Text.Json.JsonValueKind.Array)
+        {
+            foreach (var addr in adrs.EnumerateArray())
+            {
+                if (addr.TryGetProperty("aadressTekst", out var atxt) && !string.IsNullOrWhiteSpace(atxt.GetString()))
+                {
+                    sb.AppendLine($"Asukoht: {atxt.GetString()}");
+                    break;
+                }
+            }
+        }
+
+        var fullText = sb.ToString().Trim();
+        if (fullText.Length > 8000) fullText = fullText[..8000];
+        return fullText;
     }
 
     private string ExtractJobText(string html, string url)
@@ -215,7 +477,7 @@ public class CvKeskusCrawlerService
         return rawText;
     }
 
-    public async Task<JobDto?> ParseTextAndSaveJobAsync(string rawText)
+    public async Task<JobDto?> ParseTextAndSaveJobAsync(string rawText, string source = "cvkeskus", string? externalUrl = null)
     {
         var structured = await _geminiService.StructureJobTextAsync(rawText);
         if (structured == null)
@@ -227,6 +489,11 @@ public class CvKeskusCrawlerService
 
         if (existing != null)
         {
+            if (!string.IsNullOrWhiteSpace(externalUrl) && string.IsNullOrWhiteSpace(existing.ExternalUrl))
+            {
+                existing.ExternalUrl = externalUrl;
+                await _context.SaveChangesAsync();
+            }
             _logger.LogInformation("Job '{Title}' by '{Company}' already exists in database.", structured.Title, structured.CompanyName);
             return MapToDto(existing);
         }
@@ -246,6 +513,8 @@ public class CvKeskusCrawlerService
             StartDateText = structured.StartDateText ?? "Kohe",
             Description = structured.Description,
             FirstMessage = structured.FirstMessage,
+            Source = source,
+            ExternalUrl = externalUrl,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -304,6 +573,9 @@ public class CvKeskusCrawlerService
         StartDateText = j.StartDateText,
         Description = j.Description,
         FirstMessage = j.FirstMessage,
+        IsExternal = j.EmployerProfileId == null || j.Source != "internal",
+        Source = !string.IsNullOrWhiteSpace(j.Source) ? j.Source : (j.EmployerProfileId == null ? "cvkeskus" : "internal"),
+        ExternalUrl = j.ExternalUrl,
         Shifts = j.Shifts.Select(s => s.ShiftCode).ToList(),
         Accommodations = j.Accommodations.Select(a => a.AccommodationCode).ToList(),
         Requirements = j.Requirements.Select(r => r.RequirementText).ToList(),

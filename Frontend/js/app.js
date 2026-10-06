@@ -26,12 +26,17 @@ function $(id){ return document.getElementById(id); }
 /* Sobivusloogika — töö peab vastama KÕIGILE tingimustele              */
 /* ------------------------------------------------------------------ */
 function fits(job,p){
-  if(p.skills.indexOf(job.skill) === -1) return false;
+  // Kui tegemist on välise kuulutusega (CV Keskus või Töötukassa), lubame seda kaardipakki
+  if(!job.isExternal && p.skills && p.skills.length > 0 && p.skills.indexOf(job.skill) === -1) return false;
   for(var i=0;i<p.access.length;i++){ if(job.accom.indexOf(p.access[i]) === -1) return false; }
   var okShift = false;
-  for(var j=0;j<p.sched.length;j++){ if(job.shifts.indexOf(p.sched[j]) !== -1) okShift = true; }
+  if(!p.sched || p.sched.length === 0 || job.isExternal){
+    okShift = true;
+  } else {
+    for(var j=0;j<p.sched.length;j++){ if(job.shifts.indexOf(p.sched[j]) !== -1) okShift = true; }
+  }
   if(!okShift) return false;
-  if(job.pay < p.pay) return false;
+  if(!job.isExternal && job.pay < p.pay) return false;
   return true;
 }
 function matching(p){ return JOBS.filter(function(j){ return fits(j,p||S.profile); }); }
@@ -46,8 +51,29 @@ function num(n,d){
 /* Kaardipakk                                                          */
 /* ------------------------------------------------------------------ */
 /* fotode asemel on prototüübis värvitaustad — päris pildid käivad siia samasse kohta */
+function getJobHash(id){
+  if(typeof id === "number") return id;
+  var str = String(id || ""), hash = 0;
+  for(var i = 0; i < str.length; i++){
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
 function photoBG(job, i){
-  var h = (job.id * 47 + i * 53) % 360;
+  var numId = getJobHash(job.id);
+  var h = (numId * 47 + i * 53) % 360;
+  if(job.source === "tootukassa"){
+    // Deep Estonia navy blue & royal sapphire/azure gradient for Töötukassa postings
+    return "radial-gradient(120% 80% at 75% 15%, hsl("+((h+180)%360)+" 75% 36%), transparent 70%),"
+         + "linear-gradient(155deg, hsl("+((h+210)%360)+" 65% 24%), hsl("+((h+230)%360)+" 75% 12%))";
+  }
+  if(job.isExternal){
+    // Beautiful sunset / amber & violet gradient for external CV Keskus postings
+    return "radial-gradient(120% 80% at 75% 15%, hsl("+((h+35)%360)+" 55% 36%), transparent 70%),"
+         + "linear-gradient(155deg, hsl("+h+" 45% 26%), hsl("+((h+50)%360)+" 52% 14%))";
+  }
   return "radial-gradient(120% 80% at 70% 15%, hsl("+((h+30)%360)+" 42% 34%), transparent 70%),"
        + "linear-gradient(155deg, hsl("+h+" 38% 30%), hsl("+((h+45)%360)+" 44% 14%))";
 }
@@ -66,16 +92,33 @@ function cardHTML(job){
     if(chips.indexOf(tag(a)) === -1 && chips.length < 3) chips.push(tag(a));
   });
   var rest = job.accom.length + 1 - chips.length;
+
+  var sourcePill, sourceTag, redirectPill = "";
+  if(job.source === "tootukassa"){
+    sourcePill = '<span class="pill source-pill tootukassa">🇪🇪 Töötukassa</span>';
+    sourceTag = '<span class="src-tag tootukassa">Töötukassa</span>';
+    redirectPill = '<button type="button" class="pill redirect-pill" onclick="event.stopPropagation(); askRedirect(\'' + job.id + '\');">Töötukassasse ↗</button>';
+  } else if(job.isExternal){
+    sourcePill = '<span class="pill source-pill cvkeskus">🌐 CV Keskus</span>';
+    sourceTag = '<span class="src-tag ext">CV Keskus</span>';
+    redirectPill = '<button type="button" class="pill redirect-pill" onclick="event.stopPropagation(); askRedirect(\'' + job.id + '\');">CV Keskusesse ↗</button>';
+  } else {
+    sourcePill = '<span class="pill source-pill internal">⚡ Otsetöö</span>';
+    sourceTag = '<span class="src-tag int">Otse tööandjalt</span>';
+  }
+
   return ''
-   + '<div class="photo">'
+   + '<div class="photo' + (job.isExternal ? ' is-ext' : '') + '">'
    +   '<span class="glyph" aria-hidden="true">'+job.ini+'</span>'
    +   '<span class="segs" aria-hidden="true"><span class="on"></span><span></span><span></span></span>'
    +   '<span class="pill km">'+num(job.km,1)+' km</span>'
+   +   sourcePill
+   +   redirectPill
    +   '<span class="pill fitp">100%</span>'
    +   '<span class="phmark">'+L.photoMark+' 1/3</span>'
    +   '<span class="scrim">'
    +     '<h2 class="crole">'+(S.lang === "et" ? job.et : job.en)+'</h2>'
-   +     '<span class="csub">'+job.co+' · '+L.posted(job.days)
+   +     '<span class="csub">'+job.co+' · '+sourceTag+' · '+L.posted(job.days)
    +       '<span class="cpay">'+num(job.pay)+' €/h</span></span>'
    +   '</span>'
    +   '<button type="button" class="infobtn" aria-label="'+L.more+'">i</button>'
@@ -105,6 +148,26 @@ function renderStack(){
     b.textContent = none ? L.noneBtn : L.emptyBtn;
     b.onclick = none ? openSetup : function(){ S.seen = []; renderStack(); };
     box.appendChild(b);
+
+    if(none && JOBS.length > 0){
+      var bAll = document.createElement("button");
+      bAll.type = "button"; bAll.className = "linkbtn";
+      bAll.style.display = "block";
+      bAll.style.marginTop = "12px";
+      bAll.style.fontWeight = "600";
+      bAll.textContent = "🔓 Näita kõiki " + JOBS.length + " pakkumist (luba kõik valdkonnad)";
+      bAll.onclick = function(){
+        S.profile.skills = Object.keys(TAGS).filter(function(k){ return TAGS[k].g === "skills"; });
+        S.profile.pay = 0;
+        S.profile.access = [];
+        S.profile.sched = [];
+        S.seen = [];
+        renderStack();
+        renderProfile();
+      };
+      box.appendChild(bAll);
+    }
+
     stack.appendChild(box);
     $("btnPass").disabled = true; $("btnLike").disabled = true; $("btnSave").disabled = true;
     $("btnUndo").disabled = S.history.length === 0;
@@ -326,12 +389,22 @@ function detailHTML(job){
   var other = job.accom.filter(function(a){ return mine.indexOf(a) === -1; });
   var reqs = S.lang === "et" ? job.reqEt : job.reqEn;
 
+  var srcBadgeDetail;
+  if(job.source === "tootukassa"){
+    srcBadgeDetail = '<div class="dsource tootukassa"><span style="font-size:18px;">🇪🇪</span> <div style="flex:1;"><strong>Eesti Töötukassa kuulutus</strong><span>Ametlik riiklik tööpakkumine</span></div> <button type="button" class="dext-btn" onclick="askRedirect(\''+job.id+'\')">Ava kuulutus ↗</button></div>';
+  } else if(job.isExternal){
+    srcBadgeDetail = '<div class="dsource ext"><span style="font-size:18px;">🌐</span> <div style="flex:1;"><strong>CV Keskus / CV.ee kuulutus</strong><span>Automaatselt imporditud tööpakkumine</span></div> <button type="button" class="dext-btn" onclick="askRedirect(\''+job.id+'\')">Ava kuulutus ↗</button></div>';
+  } else {
+    srcBadgeDetail = '<div class="dsource int"><span style="font-size:18px;">⚡</span> <div><strong>Otse tööandjalt</strong><span>Sobib platvormi partner-ettevõtte pakkumine</span></div></div>';
+  }
+
   return ''
    + '<div class="dhero">'
    +   '<span class="logo" aria-hidden="true">'+job.ini+'</span>'
    +   "<h3>"+role+"</h3>"
    +   '<span class="fit">100%</span>'
    + '</div>'
+   + srcBadgeDetail
    + '<div class="dsect"><h4 class="glabel">'+L.dAbout+'</h4>'
    +   D.desc.map(function(p){ return "<p>"+p+"</p>"; }).join("")+'</div>'
    + '<div class="dsect"><h4 class="glabel">'+L.dPractical+'</h4>'
@@ -509,9 +582,92 @@ function popup(big, txt, co, buttons){
   if(first) first.focus();
 }
 
+function askRedirect(jobId){
+  var job = JOBS.filter(function(j){ return String(j.id) === String(jobId); })[0];
+  if(!job) return;
+  var isTk = job.source === "tootukassa";
+  var portalName = isTk ? "Töötukassa" : "CV Keskus";
+  var portalIcon = isTk ? "🇪🇪" : "🌐";
+  var targetUrl = job.externalUrl || (isTk ? "https://www.tootukassa.ee/et/toopakkumised" : "https://www.cvkeskus.ee");
+
+  var bigText = portalIcon + " " + (S.lang === "et" ? (portalName + " tööpakkumine") : (portalName + " Job Offer"));
+  var msgText = S.lang === "et"
+    ? ("Kas soovid suunduda portaali " + portalName + " algsele kuulutuse lehele?")
+    : ("Would you like to be redirected to the original job offer page on " + portalName + "?");
+
+  popup(
+    bigText,
+    msgText,
+    job.co + " · " + (S.lang === "et" ? job.et : job.en),
+    [
+      {
+        label: S.lang === "et" ? ("Ava " + portalName + "s ↗") : ("Open in " + portalName + " ↗"),
+        go: function(){
+          $("matchpop").hidden = true;
+          window.open(targetUrl, "_blank", "noopener,noreferrer");
+          $("stack").focus();
+        }
+      },
+      {
+        label: S.lang === "et" ? "Loobu" : "Cancel",
+        ghost: true,
+        go: function(){
+          $("matchpop").hidden = true;
+          $("stack").focus();
+        }
+      }
+    ]
+  );
+}
+
 function showMatch(job){
   var L = t();
   pendingMatch = job.id;
+
+  if (job.isExternal) {
+    var isTk = job.source === "tootukassa";
+    var portalName = isTk ? "Töötukassa" : "CV Keskus";
+    var portalIcon = isTk ? "🇪🇪" : "🌐";
+    var targetUrl = job.externalUrl || (isTk ? "https://www.tootukassa.ee/et/toopakkumised" : "https://www.cvkeskus.ee");
+
+    var bigText = portalIcon + " " + (S.lang === "et" ? (portalName + " tööpakkumine") : (portalName + " Job Offer"));
+    var msgText = S.lang === "et"
+      ? ("See tööpakkumine pärineb portaalist " + portalName + ". Kas soovid suunduda otse " + portalName + " lehele sellele tööpakkumisele kandideerima?")
+      : ("This job offer is hosted on " + portalName + ". Would you like to be redirected directly to " + portalName + " to view and apply for this job?");
+
+    popup(
+      bigText,
+      msgText,
+      job.co + " · " + (S.lang === "et" ? job.et : job.en),
+      [
+        {
+          label: S.lang === "et" ? ("Ava " + portalName + "s ↗") : ("Open in " + portalName + " ↗"),
+          go: function(){
+            $("matchpop").hidden = true;
+            if(window.Api) Api.applyJob(job.id, false, null);
+            var file = portalName + "_veebilink";
+            S.sent[job.id] = { at: nowHM(), tailored: false, cv: null, file: file, externalUrl: targetUrl };
+            renderBadge();
+            window.open(targetUrl, "_blank", "noopener,noreferrer");
+            $("stack").focus();
+          }
+        },
+        {
+          label: S.lang === "et" ? "Salvesta töölauale ja jää äppi" : "Save and stay in app",
+          ghost: true,
+          go: function(){
+            $("matchpop").hidden = true;
+            if(window.Api) Api.saveJob(job.id);
+            if(S.saved.indexOf(job.id) === -1) S.saved.push(job.id);
+            renderBadge();
+            $("stack").focus();
+          }
+        }
+      ]
+    );
+    return;
+  }
+
   popup(L.askBig, L.askTxt(job.co), job.co + " · " + (S.lang === "et" ? job.et : job.en), [
     {label:L.askYes, go:function(){ sendCV(job, cloneCV(), false); }},
     {label:L.askEdit, ghost:true, go:function(){ $("matchpop").hidden = true; openCvEdit(job); }}
@@ -568,23 +724,34 @@ function renderMatches(){
   $("aTitle").textContent = L.sentTitle;
   waiting.slice().reverse().forEach(function(id){
     var job = JOBS.filter(function(j){ return j.id === id; })[0];
+    if(!job) return;
     var rec = S.sent[id] || {};
     var li = document.createElement("li");
     li.className = "appcard";
+    var portalName = job.source === "tootukassa" ? "Töötukassa" : (job.isExternal ? "CV Keskus" : "");
+    var subText = job.isExternal ? (portalName + " veebikuulutus") : (rec.tailored ? L.cvTailored : L.cvOrig);
     li.innerHTML = '<div class="mrow flat">'
       + '<span class="logo" aria-hidden="true">'+job.ini+'</span>'
-      + '<span class="who"><span class="co">'+job.co+'</span>'
-      + '<span class="prev">'+L.sentAt(rec.at || "", rec.tailored ? L.cvTailored : L.cvOrig)+'</span></span>'
-      + '<span class="status wait">'+L.statusWait+'</span></div>';
+      + '<span class="who"><span class="co">'+job.co+' · '+(S.lang === "et" ? job.et : job.en)+'</span>'
+      + '<span class="prev">'+L.sentAt(rec.at || "", subText)+'</span></span>'
+      + '<span class="status wait">'+(job.isExternal ? portalName : L.statusWait)+'</span></div>';
     var row = document.createElement("div");
     row.className = "approw";
-    var view = document.createElement("button");
-    view.type = "button"; view.className = "linkbtn"; view.textContent = L.viewSent;
-    view.onclick = function(){ openCvView(id); };
-    var sim = document.createElement("button");
-    sim.type = "button"; sim.className = "linkbtn demo"; sim.textContent = L.simulate;
-    sim.onclick = function(){ employerMatch(id); };
-    row.appendChild(view); row.appendChild(sim);
+    if (job.isExternal) {
+      var extBtn = document.createElement("button");
+      extBtn.type = "button"; extBtn.className = "linkbtn";
+      extBtn.textContent = "Ava " + portalName + "s ↗";
+      extBtn.onclick = function(){ askRedirect(id); };
+      row.appendChild(extBtn);
+    } else {
+      var view = document.createElement("button");
+      view.type = "button"; view.className = "linkbtn"; view.textContent = L.viewSent;
+      view.onclick = function(){ openCvView(id); };
+      var sim = document.createElement("button");
+      sim.type = "button"; sim.className = "linkbtn demo"; sim.textContent = L.simulate;
+      sim.onclick = function(){ employerMatch(id); };
+      row.appendChild(view); row.appendChild(sim);
+    }
     li.appendChild(row);
     al.appendChild(li);
   });
@@ -904,7 +1071,18 @@ $("btnReset").onclick = function(){
   S.cv = CV;
   renderStack(); renderBadge(); renderProfile(); go("jobs");
 };
-$("navJobs").onclick = function(){ go("jobs"); };
+$("navJobs").onclick = function(){
+  go("jobs");
+  if(window.refreshJobsFromBackend) refreshJobsFromBackend();
+};
+if($("btnRefreshJobs")){
+  $("btnRefreshJobs").onclick = async function(){
+    $("btnRefreshJobs").textContent = "⏳ Laadin...";
+    if(window.refreshJobsFromBackend) await refreshJobsFromBackend();
+    if(window.syncInteractionsFromDb) await syncInteractionsFromDb();
+    setTimeout(function(){ $("btnRefreshJobs").textContent = "🔄 Värskenda"; }, 400);
+  };
+}
 $("navMatches").onclick = function(){ go("matches"); };
 $("navProfile").onclick = function(){ go("profile"); };
 
@@ -1008,6 +1186,9 @@ function mapBackendJob(bj){
     skill: bj.primarySkill,
     et: bj.title,
     en: bj.title,
+    isExternal: bj.isExternal !== undefined ? !!bj.isExternal : (typeof bj.id === "string" && !bj.employerProfileId),
+    source: bj.source || (bj.isExternal ? "cvkeskus" : "internal"),
+    externalUrl: bj.externalUrl || (bj.source === "tootukassa" ? "https://www.tootukassa.ee/et/toopakkumised" : (bj.isExternal ? "https://www.cvkeskus.ee" : null)),
     shifts: bj.shifts || [],
     accom: bj.accommodations || [],
     reqEt: bj.requirements || [],
@@ -1169,6 +1350,34 @@ async function initBackendSession(name){
   }
 }
 
+async function refreshJobsFromBackend(){
+  if(!window.Api) return;
+  try {
+    var bJobs = await Api.getAllJobs();
+    if(bJobs && bJobs.length > 0){
+      JOBS = bJobs.map(mapBackendJob);
+      renderStack();
+      renderBadge();
+      if(deskVisible()) syncDesk();
+    }
+  } catch(err) {
+    console.warn("refreshJobsFromBackend error:", err);
+  }
+}
+window.refreshJobsFromBackend = refreshJobsFromBackend;
+
+window.addEventListener("focus", function(){
+  refreshJobsFromBackend();
+  if(window.syncInteractionsFromDb) syncInteractionsFromDb();
+});
+
+document.addEventListener("visibilitychange", function(){
+  if(!document.hidden){
+    refreshJobsFromBackend();
+    if(window.syncInteractionsFromDb) syncInteractionsFromDb();
+  }
+});
+
 /* ------------------------------------------------------------------ */
 /* Käivitus (+ oleku säilitamine uuendusel)                            */
 /* ------------------------------------------------------------------ */
@@ -1194,6 +1403,9 @@ function start(saved){
   if(!S.cv) S.cv = JSON.parse(JSON.stringify(CV));
   applyLang();
   go("jobs");
+
+  // Laadi kohe andmebaasist värsked tööpakkumised
+  refreshJobsFromBackend();
 
   // Kuva nime pop-up uue sessiooni alguses
   var pop = $("namepop");

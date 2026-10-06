@@ -18,6 +18,8 @@ public class Job
     public string? StartDateText { get; set; }
     public string Description { get; set; } = string.Empty;
     public string? FirstMessage { get; set; }
+    public string Source { get; set; } = "internal";
+    public string? ExternalUrl { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
