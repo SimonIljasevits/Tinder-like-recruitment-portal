@@ -20,6 +20,235 @@
   img{max-width:100%}
   [hidden]{display:none!important}
 </style>
+<link rel="stylesheet" href="css/styles.css?v=2">
+</head>
+<body>
+<div class="shell web" id="shell">
+<div class="app">
+
+  <header class="top">
+    <span class="brand"><span class="mark">S</span><b>Sobib</b></span>
+    <span class="demo-chip" id="demochip">Prototüüp</span>
+    <span class="viewtog" role="group" aria-label="Vaade / View">
+      <button type="button" id="viewWeb" aria-pressed="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M9 20h6M12 17v3"/></svg>
+      </button>
+      <button type="button" id="viewPhone" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M10.8 18.6h2.4"/></svg>
+      </button>
+    </span>
+    <a href="crawler.html" title="AI Kuulutuste Importija" style="color:var(--ink-2);text-decoration:none;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;padding:5px 9px;border:1px solid var(--line);border-radius:8px;background:var(--surface);">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+      <span>AI Import</span>
+    </a>
+    <span class="lang" role="group" aria-label="Keel / Language">
+      <button type="button" id="langEt" aria-pressed="true">ET</button>
+      <button type="button" id="langEn" aria-pressed="false">EN</button>
+    </span>
+  </header>
+
+  <!-- TÖÖD -->
+  <section class="view" id="viewJobs">
+    <div class="filterbar">
+      <span class="count" id="fCount"></span>
+      <span class="why" id="fWhy"></span>
+      <div style="display:inline-flex;gap:8px;align-items:center;">
+        <button type="button" class="linkbtn" id="btnRefreshJobs" title="Värskenda andmebaasist" style="cursor:pointer;">🔄 Värskenda</button>
+        <button type="button" class="linkbtn" id="btnFilters"></button>
+      </div>
+    </div>
+    <div class="jobsrow">
+    <div class="cardcol">
+    <div class="stack" id="stack" tabindex="0" role="group"></div>
+    <div class="actions">
+      <span class="actwrap">
+        <button type="button" class="act sm undo" id="btnUndo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h11a5 5 0 010 10h-5"/><path d="M8 5L4 9l4 4"/></svg>
+        </button>
+        <span class="actlabel" id="labUndo"></span>
+      </span>
+      <span class="actwrap">
+        <button type="button" class="act lg no" id="btnPass">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+        <span class="actlabel" id="labPass"></span>
+      </span>
+      <span class="actwrap">
+        <button type="button" class="act sm save" id="btnSave">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M6 4h12v16l-6-4-6 4z"/></svg>
+        </button>
+        <span class="actlabel" id="labSave"></span>
+      </span>
+      <span class="actwrap">
+        <button type="button" class="act lg yes" id="btnLike">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 6.5"/></svg>
+        </button>
+        <span class="actlabel" id="labLike"></span>
+      </span>
+    </div>
+    <p class="hint" id="hint"></p>
+    </div>
+    <aside class="deskpane" id="deskpane" aria-label="Kuulutus">
+      <div class="deskhead"><span class="logo" id="deskIni" aria-hidden="true"></span><h2 id="deskCo"></h2></div>
+      <div class="scroll" id="deskBody"></div>
+    </aside>
+    </div>
+  </section>
+
+  <!-- SOBIVUSED -->
+  <section class="view" id="viewMatches" hidden>
+    <div class="scroll">
+      <h2 class="secttitle" id="mTitle"></h2>
+      <p class="sectnote" id="mNote"></p>
+      <h3 class="secttitle sub" id="aTitle" hidden></h3>
+      <ul class="mlist" id="aList"></ul>
+      <h3 class="secttitle sub" id="cTitle" hidden></h3>
+      <ul class="mlist" id="mList"></ul>
+      <h3 class="secttitle sub" id="sTitle" hidden></h3>
+      <ul class="mlist" id="sList"></ul>
+    </div>
+  </section>
+
+  <!-- PROFIIL -->
+  <section class="view" id="viewProfile" hidden>
+    <div class="scroll">
+      <h2 class="secttitle" id="pTitle"></h2>
+      <p class="sectnote" id="pNote"></p>
+      <div class="statrow">
+        <span class="stat"><span class="n" id="pStatA"></span><span class="l" id="pStatAL"></span></span>
+        <span class="stat"><span class="n" id="pStatB"></span><span class="l" id="pStatBL"></span></span>
+        <span class="stat"><span class="n" id="pStatC"></span><span class="l" id="pStatCL"></span></span>
+      </div>
+      <div id="pTags"></div>
+      <button type="button" class="bigbtn" id="btnSetup"></button>
+      <button type="button" class="bigbtn ghost" id="btnReset"></button>
+    </div>
+  </section>
+
+  <nav class="nav" aria-label="Põhimenüü">
+    <button type="button" id="navJobs" aria-current="page">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2"/></svg>
+      <span id="navJobsL"></span>
+    </button>
+    <button type="button" id="navMatches">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M21 12a8 8 0 01-11.3 7.3L3 21l1.7-6.7A8 8 0 1121 12z"/></svg>
+      <span id="navMatchesL"></span>
+      <span class="badge" id="navBadge" hidden>0</span>
+    </button>
+    <button type="button" id="navProfile">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20a7.5 7.5 0 0115 0"/></svg>
+      <span id="navProfileL"></span>
+    </button>
+  </nav>
+
+  <!-- SEADISTUS -->
+  <div class="sheet" id="setup" hidden role="dialog" aria-modal="true" aria-labelledby="setupTitle">
+    <div class="sheethead">
+      <h2 id="setupTitle"></h2>
+      <button type="button" class="iconbtn" id="setupClose" aria-label="Sulge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="steps"><span class="on"></span><span></span><span></span></div>
+    <div class="stepintro"><h3 id="stepH"></h3><p id="stepP"></p></div>
+    <div class="scroll" id="stepBody"></div>
+    <p class="livecount" id="liveCount"></p>
+    <div class="sheetfoot">
+      <button type="button" class="bigbtn ghost" id="stepBack"></button>
+      <button type="button" class="bigbtn" id="stepNext"></button>
+    </div>
+  </div>
+
+  <!-- KUULUTUS -->
+  <div class="sheet" id="detail" hidden role="dialog" aria-modal="true" aria-labelledby="dCo">
+    <div class="sheethead">
+      <button type="button" class="iconbtn" id="dBack" aria-label="Tagasi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <h2 id="dCo"></h2>
+    </div>
+    <div class="scroll" id="dBody"></div>
+    <div class="sheetfoot">
+      <button type="button" class="bigbtn ghost" id="dPass"></button>
+      <button type="button" class="bigbtn" id="dLike"></button>
+    </div>
+  </div>
+
+  <!-- CV TOIMETI -->
+  <div class="sheet" id="cvedit" hidden role="dialog" aria-modal="true" aria-labelledby="cvHead">
+    <div class="sheethead">
+      <button type="button" class="iconbtn" id="cvBack" aria-label="Tagasi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <h2 id="cvHead"></h2>
+    </div>
+    <div class="scroll" id="cvBody"></div>
+    <div class="sheetfoot">
+      <button type="button" class="bigbtn ghost" id="cvCancel"></button>
+      <button type="button" class="bigbtn" id="cvSend"></button>
+    </div>
+  </div>
+
+  <!-- SAADETUD CV (ainult vaatamiseks) -->
+  <div class="sheet" id="cvview" hidden role="dialog" aria-modal="true" aria-labelledby="cvvHead">
+    <div class="sheethead">
+      <button type="button" class="iconbtn" id="cvvBack" aria-label="Tagasi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <h2 id="cvvHead"></h2>
+    </div>
+    <div class="scroll" id="cvvBody"></div>
+  </div>
+
+  <!-- VESTLUS -->
+  <div class="sheet" id="chat" hidden role="dialog" aria-modal="true" aria-labelledby="chatTitle">
+    <div class="sheethead">
+      <button type="button" class="iconbtn" id="chatBack" aria-label="Tagasi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <h2 id="chatTitle"></h2>
+    </div>
+    <div class="msgs" id="msgs"></div>
+    <div class="quick" id="quick"></div>
+    <form class="composer" id="composer">
+      <label class="sr" for="msgInput">Sõnum</label>
+      <input id="msgInput" autocomplete="off">
+      <button type="submit" aria-label="Saada">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l16-8-6 16-2.5-6.5L4 12z"/></svg>
+      </button>
+    </form>
+  </div>
+
+  <!-- MATCH -->
+  <div class="matchpop" id="matchpop" hidden role="dialog" aria-modal="true" aria-labelledby="matchBig">
+    <p class="big" id="matchBig"></p>
+    <span class="co" id="matchCo"></span>
+    <p id="matchTxt"></p>
+    <span class="btns" id="matchBtns"></span>
+  </div>
+
+  <!-- NAME POPUP (Session start) -->
+  <div class="matchpop" id="namepop" role="dialog" aria-modal="true" aria-labelledby="namePopTitle">
+    <p class="big" id="namePopTitle">Tere tulemast!</p>
+    <p id="namePopSubtitle" style="color:#E9F0EE;font-size:15px;max-width:28ch;">Sisesta oma nimi, et alustada tööde sirvimist.</p>
+    <form id="nameForm" style="display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:280px;margin-top:8px;">
+      <input type="text" id="nameInput" placeholder="Sinu nimi / Your name" autofocus required style="width:100%;padding:13px 16px;font-size:16px;border-radius:12px;border:1px solid #ccc;background:#fff;color:#111;text-align:center;box-sizing:border-box;outline:none;">
+      <button type="submit" class="bigbtn" id="nameSubmit" style="width:100%;">Alusta</button>
+    </form>
+  </div>
+
+  <label class="sr" for="letterFile">Motivatsioonikiri</label>
+  <input type="file" id="letterFile" accept="application/pdf,.pdf" hidden>
+
+  <p class="sr" id="live" aria-live="polite"></p>
+</div>
+</div>
+
+<script src="js/i18n.js"></script>
+<script src="js/data.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js?v=2"></script>
+</body>
 <style>
 /* Layout: üks telefoniekraan — päis, kaardipakk, alumine navigatsioon. Töörõivaste paletis: tume tint + ohutuskollane. */
 :root{
@@ -185,6 +414,92 @@ button{font:inherit;color:inherit}
 }
 .pill.km{left:12px;background:rgba(8,10,12,.55);color:#fff}
 .pill.fitp{right:12px;background:var(--match);color:#fff}
+.pill.source-pill{
+  top:48px;left:12px;
+  font-size:10px;font-weight:700;
+  display:inline-flex;align-items:center;gap:4px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.35);
+}
+.pill.source-pill.cvkeskus{
+  background:linear-gradient(135deg, #F59E0B, #D97706);
+  color:#1C1000;
+  border:1px solid rgba(255,255,255,0.45);
+}
+.pill.source-pill.tootukassa{
+  background:linear-gradient(135deg, #0284C7, #0369A1);
+  color:#FFFFFF;
+  border:1px solid rgba(255,255,255,0.45);
+}
+.pill.source-pill.internal{
+  background:linear-gradient(135deg, #10B981, #059669);
+  color:#FFFFFF;
+  border:1px solid rgba(255,255,255,0.3);
+}
+
+.pill.redirect-pill{
+  top:48px;right:12px;
+  font-size:10.5px;font-weight:700;
+  display:inline-flex;align-items:center;gap:4px;
+  background:rgba(12,16,20,0.75);
+  backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,0.35);
+  color:#FFFFFF;
+  cursor:pointer;
+  box-shadow:0 2px 8px rgba(0,0,0,0.4);
+  transition:all .15s ease;
+}
+.pill.redirect-pill:hover{
+  background:rgba(255,255,255,0.22);
+  transform:scale(1.04);
+}
+
+.dext-btn{
+  background:rgba(255,255,255,0.15);
+  border:1px solid rgba(255,255,255,0.35);
+  color:#FFFFFF;
+  padding:5px 12px;
+  border-radius:6px;
+  font-size:12px;
+  font-weight:700;
+  cursor:pointer;
+  white-space:nowrap;
+  transition:all .15s;
+}
+.dext-btn:hover{
+  background:rgba(255,255,255,0.28);
+}
+
+.src-tag{
+  display:inline-block;padding:1px 6px;border-radius:4px;font-size:10.5px;font-weight:700;letter-spacing:0.02em;text-transform:uppercase;
+}
+.src-tag.ext{
+  background:rgba(245,158,11,0.25);color:#FBBF24;border:1px solid rgba(245,158,11,0.5);
+}
+.src-tag.tootukassa{
+  background:rgba(2,132,199,0.25);color:#38BDF8;border:1px solid rgba(2,132,199,0.5);
+}
+.src-tag.int{
+  background:rgba(16,185,129,0.25);color:#34D399;border:1px solid rgba(16,185,129,0.4);
+}
+
+.dsource{
+  margin-top:10px;padding:10px 14px;border-radius:10px;display:flex;align-items:center;gap:10px;font-size:13px;
+}
+.dsource.ext{
+  background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.35);color:#F59E0B;
+}
+.dsource.ext strong{color:#FBBF24;}
+.dsource.ext span{display:block;font-size:11.5px;color:rgba(255,255,255,0.7);}
+.dsource.tootukassa{
+  background:rgba(2,132,199,0.12);border:1px solid rgba(2,132,199,0.35);color:#0284C7;
+}
+.dsource.tootukassa strong{color:#38BDF8;}
+.dsource.tootukassa span{display:block;font-size:11.5px;color:rgba(255,255,255,0.7);}
+.dsource.int{
+  background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);color:#10B981;
+}
+.dsource.int strong{color:#34D399;}
+.dsource.int span{display:block;font-size:11.5px;color:rgba(255,255,255,0.7);}
 .phmark{
   position:absolute;top:46%;left:50%;transform:translate(-50%,-50%);z-index:2;
   font-family:var(--font-mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
@@ -616,6 +931,22 @@ input[type=range]{width:100%;accent-color:var(--match)}
   .card.anim{transition:none}
   .act{transition:none}
 }
+
+/* ---------- motivatsioonikiri ---------- */
+.letterbox{
+  border:1px solid var(--line);border-radius:var(--r);background:var(--surface-2);
+  padding:12px;margin-bottom:18px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+}
+.letterbox .letterfile,
+.letterbox .letternone{margin:0;flex:1 1 100%;min-width:0;font-size:14px}
+.letterbox .letternone{color:var(--ink-2)}
+.letterbox .lname{
+  font-weight:600;word-break:break-all;display:inline-block;margin-right:8px;
+}
+.letterbox .lsize{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-2)}
+.letterbox .lhint,
+.letterbox .lerr{flex:1 1 100%;margin:0;font-size:12px;color:var(--ink-2);line-height:1.4}
+.letterbox .lerr{color:var(--pass)}
 </style>
 </head>
 <body>
@@ -633,6 +964,10 @@ input[type=range]{width:100%;accent-color:var(--match)}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M10.8 18.6h2.4"/></svg>
       </button>
     </span>
+    <a href="crawler.html" title="AI Kuulutuste Importija" style="color:var(--ink-2);text-decoration:none;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;padding:5px 9px;border:1px solid var(--line);border-radius:8px;background:var(--surface);">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+      <span>AI Import</span>
+    </a>
     <span class="lang" role="group" aria-label="Keel / Language">
       <button type="button" id="langEt" aria-pressed="true">ET</button>
       <button type="button" id="langEn" aria-pressed="false">EN</button>
@@ -644,7 +979,10 @@ input[type=range]{width:100%;accent-color:var(--match)}
     <div class="filterbar">
       <span class="count" id="fCount"></span>
       <span class="why" id="fWhy"></span>
-      <button type="button" class="linkbtn" id="btnFilters"></button>
+      <div style="display:inline-flex;gap:8px;align-items:center;">
+        <button type="button" class="linkbtn" id="btnRefreshJobs" title="Värskenda andmebaasist" style="cursor:pointer;">🔄 Värskenda</button>
+        <button type="button" class="linkbtn" id="btnFilters"></button>
+      </div>
     </div>
     <div class="jobsrow">
     <div class="cardcol">
@@ -816,6 +1154,19 @@ input[type=range]{width:100%;accent-color:var(--match)}
     <span class="btns" id="matchBtns"></span>
   </div>
 
+  <!-- NAME POPUP (Session start) -->
+  <div class="matchpop" id="namepop" role="dialog" aria-modal="true" aria-labelledby="namePopTitle">
+    <p class="big" id="namePopTitle">Tere tulemast!</p>
+    <p id="namePopSubtitle" style="color:#E9F0EE;font-size:15px;max-width:28ch;">Sisesta oma nimi, et alustada tööde sirvimist.</p>
+    <form id="nameForm" style="display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:280px;margin-top:8px;">
+      <input type="text" id="nameInput" placeholder="Sinu nimi / Your name" autofocus required style="width:100%;padding:13px 16px;font-size:16px;border-radius:12px;border:1px solid #ccc;background:#fff;color:#111;text-align:center;box-sizing:border-box;outline:none;">
+      <button type="submit" class="bigbtn" id="nameSubmit" style="width:100%;">Alusta</button>
+    </form>
+  </div>
+
+  <label class="sr" for="letterFile">Motivatsioonikiri</label>
+  <input type="file" id="letterFile" accept="application/pdf,.pdf" hidden>
+
   <p class="sr" id="live" aria-live="polite"></p>
 </div>
 </div>
@@ -887,6 +1238,16 @@ var T = {
     cvSend:"Saada PDF-ina", cvCancel:"Tühista",
     cvSkillsHint:"Üks oskus rea kohta",
     cvSentTitle:"Saadetud CV", cvFile:"Fail",
+    letterBig:"Lisa motivatsioonikiri?",
+    letterTxt:"Valikuline. Kui sul on motivatsioonikiri PDF-ina olemas, läheb see koos CV-ga tööandjale.",
+    letterChosen:"Kiri on valitud. Läheb koos CV-ga teele.",
+    letterAdd:"Lisa PDF", letterSkip:"Saada ilma kirjata",
+    letterSend:"Saada CV ja kiri", letterReplace:"Vaheta fail", letterRemove:"Eemalda kiri",
+    letterNotPdf:"Palun vali PDF-fail.",
+    letterTooBig:"Fail on liiga suur. Piir on 10 MB.",
+    letterSection:"Motivatsioonikiri", letterNone:"Kirja ei ole lisatud",
+    letterHint:"Valikuline, PDF. Läheb koos CV-ga tööandjale.",
+    letterLabel:"Motivatsioonikiri",
     sys:"Tööandja vastas sinu kandideerimisele", send:"Saada",
     quick:["Millal saab alustada?","Kas vahetust saab jagada?","Kuidas ligipääs majja käib?","Sobib, saadan CV."],
     reply:["Tore! Vahetus algab kell 18:00, saame alustada juba esmaspäeval.",
@@ -894,7 +1255,11 @@ var T = {
            "Saadan sulle objekti aadressi ja juhendaja kontakti.",
            "Täpsustan tiimiga ja vastan homme hommikul."],
     passed:function(r){return r+" — jäetud vahele";},
-    matched:function(r){return r+" — CV saadetud";}
+    matched:function(r){return r+" — CV saadetud";},
+    namePopTitle:"Tere tulemast!",
+    namePopSubtitle:"Sisesta oma nimi, et alustada tööde sirvimist.",
+    namePopPlaceholder:"Sinu nimi",
+    namePopBtn:"Alusta"
   },
   en:{
     demo:"Prototype v10", navJobs:"Jobs", navMatches:"Chats", navProfile:"Profile",
@@ -958,6 +1323,16 @@ var T = {
     cvSend:"Send as PDF", cvCancel:"Cancel",
     cvSkillsHint:"One skill per line",
     cvSentTitle:"CV you sent", cvFile:"File",
+    letterBig:"Add a cover letter?",
+    letterTxt:"Optional. If you have a cover letter as a PDF, it goes to the employer alongside your CV.",
+    letterChosen:"Letter selected. It will be sent with your CV.",
+    letterAdd:"Attach PDF", letterSkip:"Send without a letter",
+    letterSend:"Send CV and letter", letterReplace:"Replace file", letterRemove:"Remove letter",
+    letterNotPdf:"Please choose a PDF file.",
+    letterTooBig:"That file is too large. The limit is 10 MB.",
+    letterSection:"Cover letter", letterNone:"No letter attached",
+    letterHint:"Optional, PDF. Sent to the employer with your CV.",
+    letterLabel:"Cover letter",
     sys:"The employer responded to your application", send:"Send",
     quick:["When can I start?","Can the shift be split?","How do I get into the building?","Works for me, sending my CV."],
     reply:["Great! The shift starts at 18:00, you could begin on Monday.",
@@ -965,7 +1340,11 @@ var T = {
            "I'll send you the site address and your supervisor's contact.",
            "Let me check with the team and I'll reply tomorrow morning."],
     passed:function(r){return r+" — passed";},
-    matched:function(r){return r+" — CV sent";}
+    matched:function(r){return r+" — CV sent";},
+    namePopTitle:"Welcome!",
+    namePopSubtitle:"Enter your name to start browsing jobs.",
+    namePopPlaceholder:"Your name",
+    namePopBtn:"Start"
   }
 };
 
@@ -979,6 +1358,7 @@ var TAGS = {
   "kitchen":{g:"skills",et:"Köögi puhastus",en:"Kitchen cleaning"},
   "laundry":{g:"skills",et:"Pesumaja",en:"Laundry"},
   "warehouse":{g:"skills",et:"Laoabi",en:"Warehouse help"},
+  "customer_service":{g:"skills",et:"Klienditeenindus / Üldtöö",en:"Customer service / General"},
 
   "max10":{g:"access",et:"Max 10 kg tõstmine",en:"Max 10kg lifting"},
   "stepfree":{g:"access",et:"Astmeteta ligipääs",en:"Step-free access"},
@@ -1298,7 +1678,7 @@ var S = {
   matched:[],   /* tööandja vastas samamoodi — alles siis avaneb vestlus */
   threads:{},
   cv:null,      /* täidetakse käivitusel CV põhjal */
-  cvDraft:null, cvJob:null,
+  cvDraft:null, cvJob:null, cvLetter:null,
   view:"web"    /* laial ekraanil: "web" = täisekraan, "phone" = telefoniraam */
 };
 function t(){ return T[S.lang]; }
@@ -1308,12 +1688,17 @@ function $(id){ return document.getElementById(id); }
 /* Sobivusloogika — töö peab vastama KÕIGILE tingimustele              */
 /* ------------------------------------------------------------------ */
 function fits(job,p){
-  if(p.skills.indexOf(job.skill) === -1) return false;
+  // Kui tegemist on välise kuulutusega (CV Keskus või Töötukassa), lubame seda kaardipakki
+  if(!job.isExternal && p.skills && p.skills.length > 0 && p.skills.indexOf(job.skill) === -1) return false;
   for(var i=0;i<p.access.length;i++){ if(job.accom.indexOf(p.access[i]) === -1) return false; }
   var okShift = false;
-  for(var j=0;j<p.sched.length;j++){ if(job.shifts.indexOf(p.sched[j]) !== -1) okShift = true; }
+  if(!p.sched || p.sched.length === 0 || job.isExternal){
+    okShift = true;
+  } else {
+    for(var j=0;j<p.sched.length;j++){ if(job.shifts.indexOf(p.sched[j]) !== -1) okShift = true; }
+  }
   if(!okShift) return false;
-  if(job.pay < p.pay) return false;
+  if(!job.isExternal && job.pay < p.pay) return false;
   return true;
 }
 function matching(p){ return JOBS.filter(function(j){ return fits(j,p||S.profile); }); }
@@ -1328,8 +1713,29 @@ function num(n,d){
 /* Kaardipakk                                                          */
 /* ------------------------------------------------------------------ */
 /* fotode asemel on prototüübis värvitaustad — päris pildid käivad siia samasse kohta */
+function getJobHash(id){
+  if(typeof id === "number") return id;
+  var str = String(id || ""), hash = 0;
+  for(var i = 0; i < str.length; i++){
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
 function photoBG(job, i){
-  var h = (job.id * 47 + i * 53) % 360;
+  var numId = getJobHash(job.id);
+  var h = (numId * 47 + i * 53) % 360;
+  if(job.source === "tootukassa"){
+    // Deep Estonia navy blue & royal sapphire/azure gradient for Töötukassa postings
+    return "radial-gradient(120% 80% at 75% 15%, hsl("+((h+180)%360)+" 75% 36%), transparent 70%),"
+         + "linear-gradient(155deg, hsl("+((h+210)%360)+" 65% 24%), hsl("+((h+230)%360)+" 75% 12%))";
+  }
+  if(job.isExternal){
+    // Beautiful sunset / amber & violet gradient for external CV Keskus postings
+    return "radial-gradient(120% 80% at 75% 15%, hsl("+((h+35)%360)+" 55% 36%), transparent 70%),"
+         + "linear-gradient(155deg, hsl("+h+" 45% 26%), hsl("+((h+50)%360)+" 52% 14%))";
+  }
   return "radial-gradient(120% 80% at 70% 15%, hsl("+((h+30)%360)+" 42% 34%), transparent 70%),"
        + "linear-gradient(155deg, hsl("+h+" 38% 30%), hsl("+((h+45)%360)+" 44% 14%))";
 }
@@ -1348,16 +1754,33 @@ function cardHTML(job){
     if(chips.indexOf(tag(a)) === -1 && chips.length < 3) chips.push(tag(a));
   });
   var rest = job.accom.length + 1 - chips.length;
+
+  var sourcePill, sourceTag, redirectPill = "";
+  if(job.source === "tootukassa"){
+    sourcePill = '<span class="pill source-pill tootukassa">🇪🇪 Töötukassa</span>';
+    sourceTag = '<span class="src-tag tootukassa">Töötukassa</span>';
+    redirectPill = '<button type="button" class="pill redirect-pill" onclick="event.stopPropagation(); askRedirect(\'' + job.id + '\');">Töötukassasse ↗</button>';
+  } else if(job.isExternal){
+    sourcePill = '<span class="pill source-pill cvkeskus">🌐 CV Keskus</span>';
+    sourceTag = '<span class="src-tag ext">CV Keskus</span>';
+    redirectPill = '<button type="button" class="pill redirect-pill" onclick="event.stopPropagation(); askRedirect(\'' + job.id + '\');">CV Keskusesse ↗</button>';
+  } else {
+    sourcePill = '<span class="pill source-pill internal">⚡ Otsetöö</span>';
+    sourceTag = '<span class="src-tag int">Otse tööandjalt</span>';
+  }
+
   return ''
-   + '<div class="photo">'
+   + '<div class="photo' + (job.isExternal ? ' is-ext' : '') + '">'
    +   '<span class="glyph" aria-hidden="true">'+job.ini+'</span>'
    +   '<span class="segs" aria-hidden="true"><span class="on"></span><span></span><span></span></span>'
    +   '<span class="pill km">'+num(job.km,1)+' km</span>'
+   +   sourcePill
+   +   redirectPill
    +   '<span class="pill fitp">100%</span>'
    +   '<span class="phmark">'+L.photoMark+' 1/3</span>'
    +   '<span class="scrim">'
    +     '<h2 class="crole">'+(S.lang === "et" ? job.et : job.en)+'</h2>'
-   +     '<span class="csub">'+job.co+' · '+L.posted(job.days)
+   +     '<span class="csub">'+job.co+' · '+sourceTag+' · '+L.posted(job.days)
    +       '<span class="cpay">'+num(job.pay)+' €/h</span></span>'
    +   '</span>'
    +   '<button type="button" class="infobtn" aria-label="'+L.more+'">i</button>'
@@ -1387,6 +1810,26 @@ function renderStack(){
     b.textContent = none ? L.noneBtn : L.emptyBtn;
     b.onclick = none ? openSetup : function(){ S.seen = []; renderStack(); };
     box.appendChild(b);
+
+    if(none && JOBS.length > 0){
+      var bAll = document.createElement("button");
+      bAll.type = "button"; bAll.className = "linkbtn";
+      bAll.style.display = "block";
+      bAll.style.marginTop = "12px";
+      bAll.style.fontWeight = "600";
+      bAll.textContent = "🔓 Näita kõiki " + JOBS.length + " pakkumist (luba kõik valdkonnad)";
+      bAll.onclick = function(){
+        S.profile.skills = Object.keys(TAGS).filter(function(k){ return TAGS[k].g === "skills"; });
+        S.profile.pay = 0;
+        S.profile.access = [];
+        S.profile.sched = [];
+        S.seen = [];
+        renderStack();
+        renderProfile();
+      };
+      box.appendChild(bAll);
+    }
+
     stack.appendChild(box);
     $("btnPass").disabled = true; $("btnLike").disabled = true; $("btnSave").disabled = true;
     $("btnUndo").disabled = S.history.length === 0;
@@ -1494,6 +1937,7 @@ function decide(job, liked){
     showMatch(job);
   } else {
     $("live").textContent = L.passed(role);
+    if(window.Api) Api.passJob(job.id);
   }
   renderStack(); renderBadge();
 }
@@ -1511,6 +1955,7 @@ function doSave(el, job){
   if(S.seen.indexOf(job.id) === -1) S.seen.push(job.id);
   if(S.saved.indexOf(job.id) === -1) S.saved.push(job.id);
   S.history.push({id:job.id, act:"save"});
+  if(window.Api) Api.saveJob(job.id);
   $("live").textContent = t().saved(S.lang === "et" ? job.et : job.en);
   el.classList.add("anim");
   el.style.transform = "translateY(-560px) scale(.92)";
@@ -1606,12 +2051,22 @@ function detailHTML(job){
   var other = job.accom.filter(function(a){ return mine.indexOf(a) === -1; });
   var reqs = S.lang === "et" ? job.reqEt : job.reqEn;
 
+  var srcBadgeDetail;
+  if(job.source === "tootukassa"){
+    srcBadgeDetail = '<div class="dsource tootukassa"><span style="font-size:18px;">🇪🇪</span> <div style="flex:1;"><strong>Eesti Töötukassa kuulutus</strong><span>Ametlik riiklik tööpakkumine</span></div> <button type="button" class="dext-btn" onclick="askRedirect(\''+job.id+'\')">Ava kuulutus ↗</button></div>';
+  } else if(job.isExternal){
+    srcBadgeDetail = '<div class="dsource ext"><span style="font-size:18px;">🌐</span> <div style="flex:1;"><strong>CV Keskus / CV.ee kuulutus</strong><span>Automaatselt imporditud tööpakkumine</span></div> <button type="button" class="dext-btn" onclick="askRedirect(\''+job.id+'\')">Ava kuulutus ↗</button></div>';
+  } else {
+    srcBadgeDetail = '<div class="dsource int"><span style="font-size:18px;">⚡</span> <div><strong>Otse tööandjalt</strong><span>Sobib platvormi partner-ettevõtte pakkumine</span></div></div>';
+  }
+
   return ''
    + '<div class="dhero">'
    +   '<span class="logo" aria-hidden="true">'+job.ini+'</span>'
    +   "<h3>"+role+"</h3>"
    +   '<span class="fit">100%</span>'
    + '</div>'
+   + srcBadgeDetail
    + '<div class="dsect"><h4 class="glabel">'+L.dAbout+'</h4>'
    +   D.desc.map(function(p){ return "<p>"+p+"</p>"; }).join("")+'</div>'
    + '<div class="dsect"><h4 class="glabel">'+L.dPractical+'</h4>'
@@ -1638,6 +2093,7 @@ function closeDetail(){ $("detail").hidden = true; openJob = null; $("stack").fo
 function openCvEdit(job){
   S.cvJob = job;
   S.cvDraft = cloneCV();
+  S.cvLetter = null;
   renderCvEdit();
   $("cvedit").hidden = false;
   $("cvBody").scrollTop = 0;
@@ -1676,9 +2132,13 @@ function renderCvEdit(){
     + '<label class="cvf"><span>'+L.cvSkills+' <em>'+L.cvSkillsHint+'</em></span>'
     +   '<textarea data-k="skills" rows="4">'+escapeHTML(d.skills.join("\n"))+'</textarea></label>'
     + field(L.cvAvail,"availability",d.availability,3)
-    + field(L.cvCond,"conditions",d.conditions,3);
+    + field(L.cvCond,"conditions",d.conditions,3)
+    /* Kiri on CV kohandamise loogiline jätk, seega kõige lõpus */
+    + '<h4 class="glabel cvsec">'+L.letterSection+'</h4>'
+    + '<div class="letterbox" id="cvLetterBox"></div>';
 
   $("cvBody").innerHTML = html;
+  renderCvLetter();
 
   /* lihtväljade väärtused paneme JS-iga, et jutumärgid ei lõhuks märgendit */
   ["name","phone","email","city"].forEach(function(k){
@@ -1691,6 +2151,40 @@ function renderCvEdit(){
     renderCvExp();
   };
   renderCvExp();
+}
+
+function renderCvLetter(err){
+  var L = t(), box = $("cvLetterBox");
+  if(!box) return;
+  var l = S.cvLetter;
+  box.innerHTML = l
+    ? '<p class="letterfile"><span class="lname">'+escapeHTML(l.name)+'</span>'
+      + '<span class="lsize">'+fmtSize(l.size)+'</span></p>'
+    : '<p class="letternone">'+L.letterNone+'</p>';
+
+  var add = document.createElement("button");
+  add.type = "button"; add.className = "linkbtn";
+  add.textContent = l ? L.letterReplace : L.letterAdd;
+  add.onclick = function(){
+    pickLetter(function(picked, e){
+      if(picked) S.cvLetter = picked;
+      renderCvLetter(e);
+    });
+  };
+  box.appendChild(add);
+
+  if(l){
+    var rm = document.createElement("button");
+    rm.type = "button"; rm.className = "linkbtn";
+    rm.textContent = L.letterRemove;
+    rm.onclick = function(){ S.cvLetter = null; renderCvLetter(); };
+    box.appendChild(rm);
+  }
+
+  var hint = document.createElement("p");
+  hint.className = err ? "lerr" : "lhint";
+  hint.textContent = err || L.letterHint;
+  box.appendChild(hint);
 }
 
 function renderCvExp(){
@@ -1758,6 +2252,7 @@ function openCvView(id){
   $("cvvHead").textContent = L.cvSentTitle;
   $("cvvBody").innerHTML = '<p class="cvfor">'+job.co+' · '+(S.lang === "et" ? job.et : job.en)+'</p>'
     + '<p class="cvfile"><span>'+L.cvFile+'</span>'+rec.file+'</p>'
+    + (rec.letter ? '<p class="cvfile"><span>'+L.letterLabel+'</span>'+escapeHTML(rec.letter.name)+'</p>' : "")
     + cvPreviewHTML(rec.cv);
   $("cvview").hidden = false;
   $("cvvBody").scrollTop = 0;
@@ -1789,13 +2284,160 @@ function popup(big, txt, co, buttons){
   if(first) first.focus();
 }
 
+function askRedirect(jobId){
+  var job = JOBS.filter(function(j){ return String(j.id) === String(jobId); })[0];
+  if(!job) return;
+  var isTk = job.source === "tootukassa";
+  var portalName = isTk ? "Töötukassa" : "CV Keskus";
+  var portalIcon = isTk ? "🇪🇪" : "🌐";
+  var targetUrl = job.externalUrl || (isTk ? "https://www.tootukassa.ee/et/toopakkumised" : "https://www.cvkeskus.ee");
+
+  var bigText = portalIcon + " " + (S.lang === "et" ? (portalName + " tööpakkumine") : (portalName + " Job Offer"));
+  var msgText = S.lang === "et"
+    ? ("Kas soovid suunduda portaali " + portalName + " algsele kuulutuse lehele?")
+    : ("Would you like to be redirected to the original job offer page on " + portalName + "?");
+
+  popup(
+    bigText,
+    msgText,
+    job.co + " · " + (S.lang === "et" ? job.et : job.en),
+    [
+      {
+        label: S.lang === "et" ? ("Ava " + portalName + "s ↗") : ("Open in " + portalName + " ↗"),
+        go: function(){
+          $("matchpop").hidden = true;
+          window.open(targetUrl, "_blank", "noopener,noreferrer");
+          $("stack").focus();
+        }
+      },
+      {
+        label: S.lang === "et" ? "Loobu" : "Cancel",
+        ghost: true,
+        go: function(){
+          $("matchpop").hidden = true;
+          $("stack").focus();
+        }
+      }
+    ]
+  );
+}
+
 function showMatch(job){
   var L = t();
   pendingMatch = job.id;
+
+  if (job.isExternal) {
+    var isTk = job.source === "tootukassa";
+    var portalName = isTk ? "Töötukassa" : "CV Keskus";
+    var portalIcon = isTk ? "🇪🇪" : "🌐";
+    var targetUrl = job.externalUrl || (isTk ? "https://www.tootukassa.ee/et/toopakkumised" : "https://www.cvkeskus.ee");
+
+    var bigText = portalIcon + " " + (S.lang === "et" ? (portalName + " tööpakkumine") : (portalName + " Job Offer"));
+    var msgText = S.lang === "et"
+      ? ("See tööpakkumine pärineb portaalist " + portalName + ". Kas soovid suunduda otse " + portalName + " lehele sellele tööpakkumisele kandideerima?")
+      : ("This job offer is hosted on " + portalName + ". Would you like to be redirected directly to " + portalName + " to view and apply for this job?");
+
+    popup(
+      bigText,
+      msgText,
+      job.co + " · " + (S.lang === "et" ? job.et : job.en),
+      [
+        {
+          label: S.lang === "et" ? ("Ava " + portalName + "s ↗") : ("Open in " + portalName + " ↗"),
+          go: function(){
+            $("matchpop").hidden = true;
+            if(window.Api) Api.applyJob(job.id, false, null);
+            var file = portalName + "_veebilink";
+            S.sent[job.id] = { at: nowHM(), tailored: false, cv: null, file: file, externalUrl: targetUrl };
+            renderBadge();
+            window.open(targetUrl, "_blank", "noopener,noreferrer");
+            $("stack").focus();
+          }
+        },
+        {
+          label: S.lang === "et" ? "Salvesta töölauale ja jää äppi" : "Save and stay in app",
+          ghost: true,
+          go: function(){
+            $("matchpop").hidden = true;
+            if(window.Api) Api.saveJob(job.id);
+            if(S.saved.indexOf(job.id) === -1) S.saved.push(job.id);
+            renderBadge();
+            $("stack").focus();
+          }
+        }
+      ]
+    );
+    return;
+  }
+
   popup(L.askBig, L.askTxt(job.co), job.co + " · " + (S.lang === "et" ? job.et : job.en), [
-    {label:L.askYes, go:function(){ sendCV(job, cloneCV(), false); }},
+    {label:L.askYes, go:function(){ pendingLetter = null; askLetter(job, cloneCV(), false, null); }},
     {label:L.askEdit, ghost:true, go:function(){ $("matchpop").hidden = true; openCvEdit(job); }}
   ]);
+}
+
+/* ------------------------------------------------------------------ */
+/* Motivatsioonikiri                                                   */
+/*                                                                      */
+/* Kiri on valikuline ja käib eraldi PDF-ina CV kõrval — kahe faili     */
+/* üheks liitmine ei ole brauseris mõistlik ja kandideerimisel käivadki  */
+/* need tavaliselt eraldi. Prototüüp hoiab failist ainult nime ja        */
+/* suurust; päris üleslaadimine käiks api.js kaudu.                      */
+/* ------------------------------------------------------------------ */
+var MAX_LETTER = 10 * 1024 * 1024;
+
+function fmtSize(bytes){
+  var mb = bytes / (1024*1024);
+  if(mb >= 1) return (S.lang === "et" ? mb.toFixed(1).replace(".",",") : mb.toFixed(1)) + " MB";
+  var kb = Math.max(1, Math.round(bytes / 1024));
+  return kb + " KB";
+}
+
+/* Avab seadme failivalija. done(letter|null, viga|null) */
+function pickLetter(done){
+  var L = t(), inp = $("letterFile");
+  inp.value = "";
+  inp.onchange = function(){
+    var f = inp.files && inp.files[0];
+    if(!f){ done(null, null); return; }
+    if(f.type !== "application/pdf" && !/\.pdf$/i.test(f.name)){ done(null, L.letterNotPdf); return; }
+    if(f.size > MAX_LETTER){ done(null, L.letterTooBig); return; }
+    done({name:f.name, size:f.size, file:f}, null);
+  };
+  inp.click();
+}
+
+/* Kiire tee: pärast „saada praegune" küsitakse kirja kohta */
+var pendingLetter = null;
+
+function askLetter(job, cv, tailored, err){
+  var L = t(), btns = [];
+  if(pendingLetter){
+    btns.push({label:L.letterSend, go:function(){
+      $("matchpop").hidden = true;
+      sendCV(job, cv, tailored, pendingLetter);
+    }});
+    btns.push({label:L.letterReplace, ghost:true, go:function(){
+      pickLetter(function(l, e){ if(l) pendingLetter = l; askLetter(job, cv, tailored, e); });
+    }});
+    btns.push({label:L.letterRemove, ghost:true, go:function(){
+      pendingLetter = null; askLetter(job, cv, tailored, null);
+    }});
+  } else {
+    btns.push({label:L.letterAdd, go:function(){
+      pickLetter(function(l, e){ if(l) pendingLetter = l; askLetter(job, cv, tailored, e); });
+    }});
+    btns.push({label:L.letterSkip, ghost:true, go:function(){
+      $("matchpop").hidden = true;
+      sendCV(job, cv, tailored, null);
+    }});
+  }
+  popup(
+    L.letterBig,
+    err || (pendingLetter ? L.letterChosen : L.letterTxt),
+    pendingLetter ? pendingLetter.name + " · " + fmtSize(pendingLetter.size) : job.co,
+    btns
+  );
 }
 
 function cloneCV(){
@@ -1817,16 +2459,21 @@ function slug(s){
   return out.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
 }
 
-function sendCV(job, cv, tailored){
+function sendCV(job, cv, tailored, letter){
   var L = t();
-  /* Prototüübis on PDF-i tegemine ja saatmine jäljendatud. Päris versioonis
-     käiks siit väljakutse tagarakendusse — vt README. */
   popup(L.sendingBig, L.sendingTxt, job.co, []);
   var file = "CV_" + slug(cv.name) + "_" + slug(S.lang === "et" ? job.et : job.en) + ".pdf";
+  /* Kiri läheb eraldi failina CV kõrval. Päris üleslaadimine kuulub api.js alla. */
+  var shown = letter ? file + "  +  " + letter.name : file;
+  if(window.Api) Api.applyJob(job.id, tailored, cv);
   setTimeout(function(){
-    S.sent[job.id] = {at:nowHM(), tailored:tailored, cv:cv, file:file};
+    S.sent[job.id] = {
+      at:nowHM(), tailored:tailored, cv:cv, file:file,
+      letter: letter ? {name:letter.name, size:letter.size} : null
+    };
+    pendingLetter = null;
     renderBadge();
-    popup(L.sentBig, L.sentTxt, file, [
+    popup(L.sentBig, L.sentTxt, shown, [
       {label:L.sentMore, go:function(){ $("matchpop").hidden = true; $("stack").focus(); }}
     ]);
   }, 1100);
@@ -1849,23 +2496,34 @@ function renderMatches(){
   $("aTitle").textContent = L.sentTitle;
   waiting.slice().reverse().forEach(function(id){
     var job = JOBS.filter(function(j){ return j.id === id; })[0];
+    if(!job) return;
     var rec = S.sent[id] || {};
     var li = document.createElement("li");
     li.className = "appcard";
+    var portalName = job.source === "tootukassa" ? "Töötukassa" : (job.isExternal ? "CV Keskus" : "");
+    var subText = job.isExternal ? (portalName + " veebikuulutus") : (rec.tailored ? L.cvTailored : L.cvOrig);
     li.innerHTML = '<div class="mrow flat">'
       + '<span class="logo" aria-hidden="true">'+job.ini+'</span>'
-      + '<span class="who"><span class="co">'+job.co+'</span>'
-      + '<span class="prev">'+L.sentAt(rec.at || "", rec.tailored ? L.cvTailored : L.cvOrig)+'</span></span>'
-      + '<span class="status wait">'+L.statusWait+'</span></div>';
+      + '<span class="who"><span class="co">'+job.co+' · '+(S.lang === "et" ? job.et : job.en)+'</span>'
+      + '<span class="prev">'+L.sentAt(rec.at || "", subText)+'</span></span>'
+      + '<span class="status wait">'+(job.isExternal ? portalName : L.statusWait)+'</span></div>';
     var row = document.createElement("div");
     row.className = "approw";
-    var view = document.createElement("button");
-    view.type = "button"; view.className = "linkbtn"; view.textContent = L.viewSent;
-    view.onclick = function(){ openCvView(id); };
-    var sim = document.createElement("button");
-    sim.type = "button"; sim.className = "linkbtn demo"; sim.textContent = L.simulate;
-    sim.onclick = function(){ employerMatch(id); };
-    row.appendChild(view); row.appendChild(sim);
+    if (job.isExternal) {
+      var extBtn = document.createElement("button");
+      extBtn.type = "button"; extBtn.className = "linkbtn";
+      extBtn.textContent = "Ava " + portalName + "s ↗";
+      extBtn.onclick = function(){ askRedirect(id); };
+      row.appendChild(extBtn);
+    } else {
+      var view = document.createElement("button");
+      view.type = "button"; view.className = "linkbtn"; view.textContent = L.viewSent;
+      view.onclick = function(){ openCvView(id); };
+      var sim = document.createElement("button");
+      sim.type = "button"; sim.className = "linkbtn demo"; sim.textContent = L.simulate;
+      sim.onclick = function(){ employerMatch(id); };
+      row.appendChild(view); row.appendChild(sim);
+    }
     li.appendChild(row);
     al.appendChild(li);
   });
@@ -1930,6 +2588,7 @@ function employerMatch(id){
   if(!S.threads[id]){
     S.threads[id] = [{who:"them", et:job.firstEt, en:job.firstEn, time:nowHM()}];
   }
+  if(window.Api) Api.simulateMatch(id);
   renderMatches(); renderBadge();
   openChat(id);
 }
@@ -1937,11 +2596,31 @@ function employerMatch(id){
 function openChat(id){
   S.thread = id;
   var job = JOBS.filter(function(j){ return j.id === id; })[0];
-  $("chatTitle").textContent = job.co;
+  $("chatTitle").textContent = job ? job.co : "Vestlus";
   renderMsgs();
   renderQuick();
   $("chat").hidden = false;
   $("msgInput").focus();
+  loadChatMessages(id);
+}
+
+async function loadChatMessages(id){
+  if(!window.Api) return;
+  try {
+    var conv = await Api.getConversation(id);
+    if(conv && Array.isArray(conv.messages) && conv.messages.length > 0){
+      S.threads[id] = conv.messages.map(function(m){
+        return {
+          who: m.isMe ? "me" : "them",
+          text: m.content,
+          time: m.sentAt ? new Date(m.sentAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : nowHM()
+        };
+      });
+      if(S.thread === id) renderMsgs();
+    }
+  } catch(e) {
+    console.warn("Could not fetch messages for chat:", e);
+  }
 }
 function msgText(m){ return m.text !== undefined ? m.text : (S.lang === "et" ? m.et : m.en); }
 function renderMsgs(){
@@ -1970,13 +2649,15 @@ function escapeHTML(s){
 }
 function send(text){
   if(!text.trim() || S.thread === null) return;
-  S.threads[S.thread].push({who:"me", text:text, time:nowHM()});
+  var id = S.thread;
+  S.threads[id].push({who:"me", text:text, time:nowHM()});
   renderMsgs();
+  if(window.Api) Api.sendMessage(id, text);
   var pool = t().reply;
-  var pick = pool[S.threads[S.thread].length % pool.length];
+  var pick = pool[S.threads[id].length % pool.length];
   setTimeout(function(){
     if(S.thread === null) return;
-    S.threads[S.thread].push({who:"them", text:pick, time:nowHM()});
+    S.threads[id].push({who:"them", text:pick, time:nowHM()});
     renderMsgs(); renderMatches();
   }, 1100);
 }
@@ -1986,8 +2667,8 @@ function send(text){
 /* ------------------------------------------------------------------ */
 function renderProfile(){
   var L = t();
-  $("pTitle").textContent = L.pTitle;
-  $("pNote").textContent = L.pNote;
+  $("pTitle").textContent = (S.cv && S.cv.name) ? S.cv.name : L.pTitle;
+  $("pNote").textContent = (S.cv && S.cv.name) ? (L.pTitle + " · " + L.pNote) : L.pNote;
   $("pStatA").textContent = matching().length;
   $("pStatAL").textContent = L.statA;
   $("pStatB").textContent = S.matched.length;
@@ -2089,7 +2770,10 @@ function go(tab){
     if(tab === p[1]) $(p[0]).setAttribute("aria-current","page");
     else $(p[0]).removeAttribute("aria-current");
   });
-  if(tab === "matches") renderMatches();
+  if(tab === "matches"){
+    renderMatches();
+    syncInteractionsFromDb();
+  }
   if(tab === "profile") renderProfile();
 }
 
@@ -2131,6 +2815,10 @@ function applyLang(){
   $("navMatchesL").textContent = L.navMatches;
   $("navProfileL").textContent = L.navProfile;
   $("stack").setAttribute("aria-label", L.navJobs);
+  if($("namePopTitle")) $("namePopTitle").textContent = L.namePopTitle || "Tere tulemast!";
+  if($("namePopSubtitle")) $("namePopSubtitle").textContent = L.namePopSubtitle || "Sisesta oma nimi, et alustada tööde sirvimist.";
+  if($("nameInput")) $("nameInput").placeholder = L.namePopPlaceholder || "Sinu nimi / Your name";
+  if($("nameSubmit")) $("nameSubmit").textContent = L.namePopBtn || "Alusta";
   renderStack(); renderBadge();
   if(S.tab === "matches") renderMatches();
   if(S.tab === "profile") renderProfile();
@@ -2155,7 +2843,18 @@ $("btnReset").onclick = function(){
   S.cv = CV;
   renderStack(); renderBadge(); renderProfile(); go("jobs");
 };
-$("navJobs").onclick = function(){ go("jobs"); };
+$("navJobs").onclick = function(){
+  go("jobs");
+  if(window.refreshJobsFromBackend) refreshJobsFromBackend();
+};
+if($("btnRefreshJobs")){
+  $("btnRefreshJobs").onclick = async function(){
+    $("btnRefreshJobs").textContent = "⏳ Laadin...";
+    if(window.refreshJobsFromBackend) await refreshJobsFromBackend();
+    if(window.syncInteractionsFromDb) await syncInteractionsFromDb();
+    setTimeout(function(){ $("btnRefreshJobs").textContent = "🔄 Värskenda"; }, 400);
+  };
+}
 $("navMatches").onclick = function(){ go("matches"); };
 $("navProfile").onclick = function(){ go("profile"); };
 
@@ -2187,7 +2886,9 @@ $("cvSend").onclick = function(){
   var job = S.cvJob;
   $("cvedit").hidden = true;
   S.cvJob = null;
-  sendCV(job, S.cvDraft, true);
+  var letter = S.cvLetter;
+  S.cvLetter = null;
+  sendCV(job, S.cvDraft, true, letter);
 };
 $("cvvBack").onclick = function(){ $("cvview").hidden = true; };
 
@@ -2219,12 +2920,236 @@ $("stack").addEventListener("keydown", function(e){
 });
 document.addEventListener("keydown", function(e){
   if(e.key !== "Escape") return;
+  if(!$("namepop").hidden) return;
   if(!$("matchpop").hidden){ $("matchpop").hidden = true; return; }
   if(!$("cvview").hidden){ $("cvview").hidden = true; return; }
   if(!$("cvedit").hidden){ $("cvedit").hidden = true; S.cvJob = null; return; }
   if(!$("detail").hidden){ closeDetail(); return; }
   if(!$("chat").hidden){ $("chat").hidden = true; S.thread = null; renderMatches(); return; }
   if(!$("setup").hidden){ $("setup").hidden = true; }
+});
+
+/* ------------------------------------------------------------------ */
+/* Backend-integreerimine ja sessioon                                  */
+/* ------------------------------------------------------------------ */
+function mapBackendJob(bj){
+  var id = bj.id;
+  DETAILS[id] = {
+    et: {
+      desc: [bj.description],
+      hours: bj.workingHours || "",
+      place: bj.location || "",
+      start: bj.startDateText || "",
+      offers: bj.offers || []
+    },
+    en: {
+      desc: [bj.description],
+      hours: bj.workingHours || "",
+      place: bj.location || "",
+      start: bj.startDateText || "",
+      offers: bj.offers || []
+    }
+  };
+  return {
+    id: id,
+    co: bj.companyName,
+    ini: bj.companyInitials || (bj.companyName ? bj.companyName.substring(0,2).toUpperCase() : "JO"),
+    pay: Number(bj.hourlyPay),
+    km: Number(bj.distanceKm) || 2.0,
+    days: 1,
+    skill: bj.primarySkill,
+    et: bj.title,
+    en: bj.title,
+    isExternal: bj.isExternal !== undefined ? !!bj.isExternal : (typeof bj.id === "string" && !bj.employerProfileId),
+    source: bj.source || (bj.isExternal ? "cvkeskus" : "internal"),
+    externalUrl: bj.externalUrl || (bj.source === "tootukassa" ? "https://www.tootukassa.ee/et/toopakkumised" : (bj.isExternal ? "https://www.cvkeskus.ee" : null)),
+    shifts: bj.shifts || [],
+    accom: bj.accommodations || [],
+    reqEt: bj.requirements || [],
+    reqEn: bj.requirements || [],
+    firstEt: bj.firstMessage || "Tere! Nägin su profiili.",
+    firstEn: bj.firstMessage || "Hi! Saw your profile."
+  };
+}
+
+async function syncInteractionsFromDb(){
+  if(!window.Api) return;
+  try {
+    var results = await Promise.all([
+      Api.getApplied(),
+      Api.getSaved(),
+      Api.getConversations()
+    ]);
+    var appliedData = results[0] || [];
+    var savedData = results[1] || [];
+    var convs = results[2] || [];
+
+    // 1. Process Saved Jobs
+    if(Array.isArray(savedData)){
+      savedData.forEach(function(item){
+        var j = item.job;
+        if(!j) return;
+        var jId = j.id;
+        if(S.saved.indexOf(jId) === -1) S.saved.push(jId);
+        if(S.seen.indexOf(jId) === -1) S.seen.push(jId);
+
+        // Tagame, et kuulutus on JOBS nimekirjas olemas
+        if(!JOBS.some(function(existing){ return existing.id === jId; })){
+          JOBS.push(mapBackendJob(j));
+        }
+      });
+    }
+
+    // 2. Process Applied Jobs
+    if(Array.isArray(appliedData)){
+      appliedData.forEach(function(app){
+        var j = app.job;
+        if(!j) return;
+        var jId = j.id;
+        if(S.applied.indexOf(jId) === -1) S.applied.push(jId);
+        if(S.seen.indexOf(jId) === -1) S.seen.push(jId);
+
+        if(!S.sent[jId]){
+          var dateStr = app.appliedAt ? new Date(app.appliedAt).toLocaleDateString() : nowHM();
+          S.sent[jId] = {
+            at: dateStr,
+            tailored: !!app.isTailoredCv,
+            cv: S.cv,
+            file: "CV_" + slug((S.cv && S.cv.name) || "Candidate") + ".pdf"
+          };
+        }
+
+        // Tööandja vastus / match
+        if(app.status === "Accepted" || app.hasConversation){
+          if(S.matched.indexOf(jId) === -1) S.matched.push(jId);
+        }
+
+        if(!JOBS.some(function(existing){ return existing.id === jId; })){
+          JOBS.push(mapBackendJob(j));
+        }
+      });
+    }
+
+    // 3. Process Conversations & Messages
+    if(Array.isArray(convs)){
+      convs.forEach(function(c){
+        var j = c.job;
+        if(!j) return;
+        var jId = j.id;
+        if(S.matched.indexOf(jId) === -1) S.matched.push(jId);
+
+        if(!S.threads[jId] || S.threads[jId].length === 0){
+          if(c.lastMessage){
+            S.threads[jId] = [{
+              who: c.lastMessage.senderRole === "Employer" ? "them" : "me",
+              text: c.lastMessage.content,
+              time: c.lastMessage.sentAt ? new Date(c.lastMessage.sentAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : nowHM()
+            }];
+          } else if(j.firstMessage) {
+            S.threads[jId] = [{
+              who: "them",
+              et: j.firstMessage,
+              en: j.firstMessage,
+              time: nowHM()
+            }];
+          }
+        }
+      });
+    }
+
+    renderBadge();
+    renderStack();
+    if(S.tab === "matches") renderMatches();
+  } catch(err) {
+    console.warn("Error syncing interactions from DB:", err);
+  }
+}
+
+async function initBackendSession(name){
+  if(!window.Api) return;
+  try {
+    Api.setCandidate(name);
+
+    // 1. Kontrolli või laadi kandidaadi profiil andmebaasist
+    var dbProfile = await Api.getProfile();
+    if(dbProfile){
+      if(dbProfile.fullName) S.cv.name = dbProfile.fullName;
+      if(dbProfile.minHourlyPay) S.profile.pay = dbProfile.minHourlyPay;
+      if(Array.isArray(dbProfile.skills) && dbProfile.skills.length > 0) S.profile.skills = dbProfile.skills;
+      if(Array.isArray(dbProfile.accommodations) && dbProfile.accommodations.length > 0) S.profile.access = dbProfile.accommodations;
+      if(Array.isArray(dbProfile.schedules) && dbProfile.schedules.length > 0) S.profile.sched = dbProfile.schedules;
+      if(dbProfile.city) S.cv.city = dbProfile.city;
+      if(dbProfile.phone) S.cv.phone = dbProfile.phone;
+      if(dbProfile.summary){
+        if(S.cv.et) S.cv.et.summary = dbProfile.summary;
+        if(S.cv.en) S.cv.en.summary = dbProfile.summary;
+      }
+      if(Array.isArray(dbProfile.experiences) && dbProfile.experiences.length > 0){
+        var mappedExp = dbProfile.experiences.map(function(e){
+          return { role: e.roleTitle, org: e.organization, period: e.period, text: e.description };
+        });
+        if(S.cv.et) S.cv.et.exp = mappedExp;
+        if(S.cv.en) S.cv.en.exp = mappedExp;
+      }
+    } else {
+      await Api.updateProfile({
+        fullName: name,
+        minHourlyPay: S.profile.pay,
+        skills: S.profile.skills,
+        accommodations: S.profile.access,
+        schedules: S.profile.sched,
+        summary: S.cv && S.cv.et ? S.cv.et.summary : "",
+        availability: S.cv && S.cv.et ? S.cv.et.availability : "",
+        conditions: S.cv && S.cv.et ? S.cv.et.conditions : "",
+        experiences: S.cv && S.cv.et ? (S.cv.et.exp || []).map(function(e){
+          return { roleTitle: e.role, organization: e.org, period: e.period, description: e.text };
+        }) : []
+      });
+    }
+
+    var bJobs = await Api.getAllJobs();
+    if(bJobs && bJobs.length > 0){
+      JOBS = bJobs.map(mapBackendJob);
+    }
+
+    // Laadi selle kandidaadi salvestatud ja kandideeritud tööd andmebaasist
+    await syncInteractionsFromDb();
+
+    renderStack();
+    renderBadge();
+    renderProfile();
+    if(deskVisible()) syncDesk();
+  } catch(err) {
+    console.warn("Backend session sync error:", err);
+  }
+}
+
+async function refreshJobsFromBackend(){
+  if(!window.Api) return;
+  try {
+    var bJobs = await Api.getAllJobs();
+    if(bJobs && bJobs.length > 0){
+      JOBS = bJobs.map(mapBackendJob);
+      renderStack();
+      renderBadge();
+      if(deskVisible()) syncDesk();
+    }
+  } catch(err) {
+    console.warn("refreshJobsFromBackend error:", err);
+  }
+}
+window.refreshJobsFromBackend = refreshJobsFromBackend;
+
+window.addEventListener("focus", function(){
+  refreshJobsFromBackend();
+  if(window.syncInteractionsFromDb) syncInteractionsFromDb();
+});
+
+document.addEventListener("visibilitychange", function(){
+  if(!document.hidden){
+    refreshJobsFromBackend();
+    if(window.syncInteractionsFromDb) syncInteractionsFromDb();
+  }
 });
 
 /* ------------------------------------------------------------------ */
@@ -2242,18 +3167,45 @@ function start(saved){
     S.history = saved.history || [];
     S.threads = saved.threads || {};
   }
-  /* Vaate saab ette anda ka lingiga: ...#telefon või ...#arvuti.
-     Muidu kehtib viimati valitud vaade, vaikimisi arvutivaade. */
   var hash = (location.hash || "").replace("#", "").toLowerCase();
   var sv = null;
   try{ sv = localStorage.getItem("sobib-vaade"); }catch(err){}
   if(hash === "telefon" || hash === "phone") setView("phone", false);
   else if(hash === "arvuti" || hash === "desktop") setView("web", false);
   else setView(sv === "phone" ? "phone" : "web");
-  if(!S.cv) S.cv = CV;
+
+  if(!S.cv) S.cv = JSON.parse(JSON.stringify(CV));
   applyLang();
   go("jobs");
+
+  // Laadi kohe andmebaasist värsked tööpakkumised
+  refreshJobsFromBackend();
+
+  // Kuva nime pop-up uue sessiooni alguses
+  var pop = $("namepop");
+  if(pop){
+    pop.hidden = false;
+    var inp = $("nameInput");
+    if(inp){
+      inp.value = "";
+      setTimeout(function(){ inp.focus(); }, 100);
+    }
+  }
+
+  var form = $("nameForm");
+  if(form){
+    form.onsubmit = function(e){
+      e.preventDefault();
+      var val = ($("nameInput").value || "").trim();
+      if(!val) return;
+      if(S.cv) S.cv.name = val;
+      if(window.Api) Api.setCandidate(val);
+      $("namepop").hidden = true;
+      initBackendSession(val);
+    };
+  }
 }
+
 if(window.claude && window.claude.hot){
   window.claude.hot.snapshot(function(){
     return {lang:S.lang, profile:S.profile, seen:S.seen, applied:S.applied, sent:S.sent,
@@ -2265,6 +3217,7 @@ if(window.claude && window.claude.hot && window.claude.hot.ready){
 } else {
   start((window.claude && window.claude.hot && window.claude.hot.data) || null);
 }
+
 </script>
 </body>
 </html>

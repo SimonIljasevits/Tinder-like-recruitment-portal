@@ -679,3 +679,19 @@ input[type=range]{width:100%;accent-color:var(--match)}
   .card.anim{transition:none}
   .act{transition:none}
 }
+
+/* ---------- motivatsioonikiri ---------- */
+.letterbox{
+  border:1px solid var(--line);border-radius:var(--r);background:var(--surface-2);
+  padding:12px;margin-bottom:18px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+}
+.letterbox .letterfile,
+.letterbox .letternone{margin:0;flex:1 1 100%;min-width:0;font-size:14px}
+.letterbox .letternone{color:var(--ink-2)}
+.letterbox .lname{
+  font-weight:600;word-break:break-all;display:inline-block;margin-right:8px;
+}
+.letterbox .lsize{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-2)}
+.letterbox .lhint,
+.letterbox .lerr{flex:1 1 100%;margin:0;font-size:12px;color:var(--ink-2);line-height:1.4}
+.letterbox .lerr{color:var(--pass)}

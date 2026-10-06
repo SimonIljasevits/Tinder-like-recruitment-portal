@@ -16,7 +16,7 @@ var S = {
   matched:[],   /* tööandja vastas samamoodi — alles siis avaneb vestlus */
   threads:{},
   cv:null,      /* täidetakse käivitusel CV põhjal */
-  cvDraft:null, cvJob:null,
+  cvDraft:null, cvJob:null, cvLetter:null,
   view:"web"    /* laial ekraanil: "web" = täisekraan, "phone" = telefoniraam */
 };
 function t(){ return T[S.lang]; }
@@ -431,6 +431,7 @@ function closeDetail(){ $("detail").hidden = true; openJob = null; $("stack").fo
 function openCvEdit(job){
   S.cvJob = job;
   S.cvDraft = cloneCV();
+  S.cvLetter = null;
   renderCvEdit();
   $("cvedit").hidden = false;
   $("cvBody").scrollTop = 0;
@@ -469,9 +470,13 @@ function renderCvEdit(){
     + '<label class="cvf"><span>'+L.cvSkills+' <em>'+L.cvSkillsHint+'</em></span>'
     +   '<textarea data-k="skills" rows="4">'+escapeHTML(d.skills.join("\n"))+'</textarea></label>'
     + field(L.cvAvail,"availability",d.availability,3)
-    + field(L.cvCond,"conditions",d.conditions,3);
+    + field(L.cvCond,"conditions",d.conditions,3)
+    /* Kiri on CV kohandamise loogiline jätk, seega kõige lõpus */
+    + '<h4 class="glabel cvsec">'+L.letterSection+'</h4>'
+    + '<div class="letterbox" id="cvLetterBox"></div>';
 
   $("cvBody").innerHTML = html;
+  renderCvLetter();
 
   /* lihtväljade väärtused paneme JS-iga, et jutumärgid ei lõhuks märgendit */
   ["name","phone","email","city"].forEach(function(k){
@@ -484,6 +489,40 @@ function renderCvEdit(){
     renderCvExp();
   };
   renderCvExp();
+}
+
+function renderCvLetter(err){
+  var L = t(), box = $("cvLetterBox");
+  if(!box) return;
+  var l = S.cvLetter;
+  box.innerHTML = l
+    ? '<p class="letterfile"><span class="lname">'+escapeHTML(l.name)+'</span>'
+      + '<span class="lsize">'+fmtSize(l.size)+'</span></p>'
+    : '<p class="letternone">'+L.letterNone+'</p>';
+
+  var add = document.createElement("button");
+  add.type = "button"; add.className = "linkbtn";
+  add.textContent = l ? L.letterReplace : L.letterAdd;
+  add.onclick = function(){
+    pickLetter(function(picked, e){
+      if(picked) S.cvLetter = picked;
+      renderCvLetter(e);
+    });
+  };
+  box.appendChild(add);
+
+  if(l){
+    var rm = document.createElement("button");
+    rm.type = "button"; rm.className = "linkbtn";
+    rm.textContent = L.letterRemove;
+    rm.onclick = function(){ S.cvLetter = null; renderCvLetter(); };
+    box.appendChild(rm);
+  }
+
+  var hint = document.createElement("p");
+  hint.className = err ? "lerr" : "lhint";
+  hint.textContent = err || L.letterHint;
+  box.appendChild(hint);
 }
 
 function renderCvExp(){
@@ -551,6 +590,7 @@ function openCvView(id){
   $("cvvHead").textContent = L.cvSentTitle;
   $("cvvBody").innerHTML = '<p class="cvfor">'+job.co+' · '+(S.lang === "et" ? job.et : job.en)+'</p>'
     + '<p class="cvfile"><span>'+L.cvFile+'</span>'+rec.file+'</p>'
+    + (rec.letter ? '<p class="cvfile"><span>'+L.letterLabel+'</span>'+escapeHTML(rec.letter.name)+'</p>' : "")
     + cvPreviewHTML(rec.cv);
   $("cvview").hidden = false;
   $("cvvBody").scrollTop = 0;
@@ -669,9 +709,73 @@ function showMatch(job){
   }
 
   popup(L.askBig, L.askTxt(job.co), job.co + " · " + (S.lang === "et" ? job.et : job.en), [
-    {label:L.askYes, go:function(){ sendCV(job, cloneCV(), false); }},
+    {label:L.askYes, go:function(){ pendingLetter = null; askLetter(job, cloneCV(), false, null); }},
     {label:L.askEdit, ghost:true, go:function(){ $("matchpop").hidden = true; openCvEdit(job); }}
   ]);
+}
+
+/* ------------------------------------------------------------------ */
+/* Motivatsioonikiri                                                   */
+/*                                                                      */
+/* Kiri on valikuline ja käib eraldi PDF-ina CV kõrval — kahe faili     */
+/* üheks liitmine ei ole brauseris mõistlik ja kandideerimisel käivadki  */
+/* need tavaliselt eraldi. Prototüüp hoiab failist ainult nime ja        */
+/* suurust; päris üleslaadimine käiks api.js kaudu.                      */
+/* ------------------------------------------------------------------ */
+var MAX_LETTER = 10 * 1024 * 1024;
+
+function fmtSize(bytes){
+  var mb = bytes / (1024*1024);
+  if(mb >= 1) return (S.lang === "et" ? mb.toFixed(1).replace(".",",") : mb.toFixed(1)) + " MB";
+  var kb = Math.max(1, Math.round(bytes / 1024));
+  return kb + " KB";
+}
+
+/* Avab seadme failivalija. done(letter|null, viga|null) */
+function pickLetter(done){
+  var L = t(), inp = $("letterFile");
+  inp.value = "";
+  inp.onchange = function(){
+    var f = inp.files && inp.files[0];
+    if(!f){ done(null, null); return; }
+    if(f.type !== "application/pdf" && !/\.pdf$/i.test(f.name)){ done(null, L.letterNotPdf); return; }
+    if(f.size > MAX_LETTER){ done(null, L.letterTooBig); return; }
+    done({name:f.name, size:f.size, file:f}, null);
+  };
+  inp.click();
+}
+
+/* Kiire tee: pärast „saada praegune" küsitakse kirja kohta */
+var pendingLetter = null;
+
+function askLetter(job, cv, tailored, err){
+  var L = t(), btns = [];
+  if(pendingLetter){
+    btns.push({label:L.letterSend, go:function(){
+      $("matchpop").hidden = true;
+      sendCV(job, cv, tailored, pendingLetter);
+    }});
+    btns.push({label:L.letterReplace, ghost:true, go:function(){
+      pickLetter(function(l, e){ if(l) pendingLetter = l; askLetter(job, cv, tailored, e); });
+    }});
+    btns.push({label:L.letterRemove, ghost:true, go:function(){
+      pendingLetter = null; askLetter(job, cv, tailored, null);
+    }});
+  } else {
+    btns.push({label:L.letterAdd, go:function(){
+      pickLetter(function(l, e){ if(l) pendingLetter = l; askLetter(job, cv, tailored, e); });
+    }});
+    btns.push({label:L.letterSkip, ghost:true, go:function(){
+      $("matchpop").hidden = true;
+      sendCV(job, cv, tailored, null);
+    }});
+  }
+  popup(
+    L.letterBig,
+    err || (pendingLetter ? L.letterChosen : L.letterTxt),
+    pendingLetter ? pendingLetter.name + " · " + fmtSize(pendingLetter.size) : job.co,
+    btns
+  );
 }
 
 function cloneCV(){
@@ -693,15 +797,21 @@ function slug(s){
   return out.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
 }
 
-function sendCV(job, cv, tailored){
+function sendCV(job, cv, tailored, letter){
   var L = t();
   popup(L.sendingBig, L.sendingTxt, job.co, []);
   var file = "CV_" + slug(cv.name) + "_" + slug(S.lang === "et" ? job.et : job.en) + ".pdf";
+  /* Kiri läheb eraldi failina CV kõrval. Päris üleslaadimine kuulub api.js alla. */
+  var shown = letter ? file + "  +  " + letter.name : file;
   if(window.Api) Api.applyJob(job.id, tailored, cv);
   setTimeout(function(){
-    S.sent[job.id] = {at:nowHM(), tailored:tailored, cv:cv, file:file};
+    S.sent[job.id] = {
+      at:nowHM(), tailored:tailored, cv:cv, file:file,
+      letter: letter ? {name:letter.name, size:letter.size} : null
+    };
+    pendingLetter = null;
     renderBadge();
-    popup(L.sentBig, L.sentTxt, file, [
+    popup(L.sentBig, L.sentTxt, shown, [
       {label:L.sentMore, go:function(){ $("matchpop").hidden = true; $("stack").focus(); }}
     ]);
   }, 1100);
@@ -1114,7 +1224,9 @@ $("cvSend").onclick = function(){
   var job = S.cvJob;
   $("cvedit").hidden = true;
   S.cvJob = null;
-  sendCV(job, S.cvDraft, true);
+  var letter = S.cvLetter;
+  S.cvLetter = null;
+  sendCV(job, S.cvDraft, true, letter);
 };
 $("cvvBack").onclick = function(){ $("cvview").hidden = true; };
 
